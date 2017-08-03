@@ -26,6 +26,8 @@ import io.ona.collect.android.team.activities.MessagesActivity;
 
 /**
  * Created by Jason Rogena - jrogena@ona.io on 02/08/2017.
+ * Attribution:
+ * - https://gist.github.com/bjoernQ/6975256
  */
 
 public class MessageOverlayService extends Service implements View.OnTouchListener {
@@ -40,6 +42,8 @@ public class MessageOverlayService extends Service implements View.OnTouchListen
     private WindowManager windowManager;
     private SharedPreferences sharedPreferences;
     private View topLeftView;
+    private int originalXPos;
+    private int originalYPos;
     private float offsetX;
     private float offsetY;
     private boolean moving;
@@ -77,13 +81,15 @@ public class MessageOverlayService extends Service implements View.OnTouchListen
 
     @Override
     public void onDestroy() {
+        Log.d(TAG, "MessageOverlayService onDestroy called");
         destroyOverlayView();
         super.onDestroy();
     }
 
     private void createOverlayView() {
-        if (messageOverlay != null
-                || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this))) {
+        if (messageOverlay != null ||
+                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                        && !Settings.canDrawOverlays(this))) {
             return;
         }
 
@@ -99,8 +105,10 @@ public class MessageOverlayService extends Service implements View.OnTouchListen
         params.x = sharedPreferences.getInt(PREFERENCE_X_POS, 0);
         params.y = sharedPreferences.getInt(PREFERENCE_Y_POS, 0);
 
-        messageOverlay = (RelativeLayout) layoutInflater.inflate(R.layout.view_message_overlay, null);
-        Button messageOverlayButton = (Button) messageOverlay.findViewById(R.id.messageOverlayButton);
+        messageOverlay =
+                (RelativeLayout) layoutInflater.inflate(R.layout.view_message_overlay, null);
+        Button messageOverlayButton =
+                (Button) messageOverlay.findViewById(R.id.messageOverlayButton);
         messageOverlayButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -163,10 +171,11 @@ public class MessageOverlayService extends Service implements View.OnTouchListen
                 int[] location = new int[2];
                 messageOverlay.getLocationOnScreen(location);
 
+                originalXPos = location[0];
+                originalYPos = location[1];
+
                 offsetX = location[0] - x;
                 offsetY = location[1] - y;
-
-                saveOverlayPosition(location[0], location[1]);
             } else if (motionEvent.getAction() == MotionEvent.ACTION_MOVE) {
                 int[] topLeftLocationOnScreen = new int[2];
                 topLeftView.getLocationOnScreen(topLeftLocationOnScreen);
@@ -174,13 +183,15 @@ public class MessageOverlayService extends Service implements View.OnTouchListen
                 float x = motionEvent.getRawX();
                 float y = motionEvent.getRawY();
 
-                WindowManager.LayoutParams params = (WindowManager.LayoutParams) messageOverlay.getLayoutParams();
+                WindowManager.LayoutParams params =
+                        (WindowManager.LayoutParams) messageOverlay.getLayoutParams();
 
                 int newX = (int) (offsetX + x);
                 int newY = (int) (offsetY + y);
 
-                if (Math.abs(newX - sharedPreferences.getInt(PREFERENCE_X_POS, 0)) < 20
-                        && Math.abs(newY - sharedPreferences.getInt(PREFERENCE_Y_POS, 0)) < 20 && !moving) {
+                if (Math.abs(newX - originalXPos) < 20
+                        && Math.abs(newY - originalYPos) < 20
+                        && !moving) {
                     return false;
                 }
 

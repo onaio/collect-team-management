@@ -28,6 +28,11 @@
                 <action android:name="org.odk.collect.android.action.SERVER_SETTINGS_CHANGED" />
             </intent-filter>
         </receiver>
+        <receiver android:name=".receivers.FormStateChangedReceiver">
+            <intent-filter>
+                <action android:name="org.odk.collect.android.action.FORM_STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
 
         <service
             android:name=".services.MessageOverlayService"

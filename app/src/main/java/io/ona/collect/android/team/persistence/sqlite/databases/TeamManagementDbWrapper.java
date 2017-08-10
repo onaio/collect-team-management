@@ -6,6 +6,7 @@ import android.os.Environment;
 
 import java.io.File;
 
+import io.ona.collect.android.team.application.TeamManagement;
 import io.ona.collect.android.team.persistence.sqlite.databases.tables.ConnectionTable;
 
 /**
@@ -13,10 +14,8 @@ import io.ona.collect.android.team.persistence.sqlite.databases.tables.Connectio
  */
 
 public class TeamManagementDbWrapper extends DbWrapper {
-    public static final String ODK_ROOT = Environment.getExternalStorageDirectory()
-            + File.separator + "odk";
     private static final String DATABASE_NAME = "team_management.db";
-    private static final String DATABASE_PATH = ODK_ROOT + File.separator + "metadata";
+    private static final String DATABASE_PATH = TeamManagement.ODK_ROOT + File.separator + "metadata";
     private static final int DATABASE_VERSION = 1;
     private ConnectionTable connectionTable;
 

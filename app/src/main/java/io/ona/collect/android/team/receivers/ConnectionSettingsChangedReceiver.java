@@ -10,8 +10,8 @@ import android.util.Log;
  * Created by Jason Rogena - jrogena@ona.io on 03/08/2017.
  */
 
-public class ServerSettingsChangedReceiver extends BroadcastReceiver {
-    private static final String TAG = ServerSettingsChangedReceiver.class.getCanonicalName();
+public class ConnectionSettingsChangedReceiver extends BroadcastReceiver {
+    private static final String TAG = ConnectionSettingsChangedReceiver.class.getCanonicalName();
 
     @Override
     public void onReceive(Context context, Intent intent) {

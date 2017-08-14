@@ -2,13 +2,16 @@ package io.ona.collect.android.team.application;
 
 import android.Manifest;
 import android.app.Application;
-import android.net.Uri;
 import android.os.Environment;
 
 import java.io.File;
+import java.util.ArrayList;
 
 import io.ona.collect.android.team.R;
 import io.ona.collect.android.team.persistence.sqlite.databases.TeamManagementDbWrapper;
+import io.ona.collect.android.team.pushes.messages.handlers.MessageHandler;
+import io.ona.collect.android.team.pushes.systems.MqttPushSystem;
+import io.ona.collect.android.team.pushes.systems.PushSystem;
 import io.ona.collect.android.team.services.StartupService;
 import io.ona.collect.android.team.utils.Permissions;
 
@@ -22,6 +25,8 @@ public class TeamManagement extends Application {
             + File.separator + "odk";
     private TeamManagementDbWrapper teamManagementDatabase;
     private static TeamManagement instance;
+    private MessageHandler messageHandler;
+    private ArrayList<PushSystem> activePushSystems;
 
     public static TeamManagement getInstance() {
         return instance;
@@ -31,9 +36,20 @@ public class TeamManagement extends Application {
     public void onCreate() {
         super.onCreate();
         this.instance = this;
+        prepareDatabases();
+        preparePushSystems();
+        StartupService.start(this);
+    }
+
+    private void prepareDatabases() {
         createODKDirs();
         getTeamManagementDatabase();
-        StartupService.start(this);
+    }
+
+    private void preparePushSystems() {
+        messageHandler = new MessageHandler();
+        activePushSystems = new ArrayList<>();
+        activePushSystems.add(new MqttPushSystem(this, messageHandler, messageHandler));
     }
 
     @Override
@@ -52,6 +68,14 @@ public class TeamManagement extends Application {
         }
 
         return teamManagementDatabase;
+    }
+
+    public MessageHandler getMessageHandler() {
+        return messageHandler;
+    }
+
+    public ArrayList<PushSystem> getActivePushSystems() {
+        return activePushSystems;
     }
 
     /**

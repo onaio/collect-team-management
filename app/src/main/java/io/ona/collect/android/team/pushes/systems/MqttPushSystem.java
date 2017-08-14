@@ -45,7 +45,7 @@ public class MqttPushSystem extends PushSystem {
     private static final String APP_KEYSTORE_FILE = "team.android.collect.ona.io.bks";
     private static final String APP_KEYSTORE_PASSWORD = "bU3mVNhcMHn8RwJBsKEdMBbpN";
 
-    protected MqttPushSystem(Context context, ConnectionListener connectionListener,
+    public MqttPushSystem(Context context, ConnectionListener connectionListener,
                              MessageListener messageListener) {
         super(context, NAME, connectionListener, messageListener);
     }
@@ -121,6 +121,7 @@ public class MqttPushSystem extends PushSystem {
                 e.printStackTrace();
             }
         }
+
         return false;
     }
 
@@ -159,8 +160,8 @@ public class MqttPushSystem extends PushSystem {
             ctx.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
 
             sslSockFactory = ctx.getSocketFactory();
-            return sslSockFactory;
 
+            return sslSockFactory;
         } catch (KeyStoreException e) {
             throw new MqttSecurityException(e);
         } catch (CertificateException e) {

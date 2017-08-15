@@ -10,10 +10,16 @@ import io.ona.collect.android.team.persistence.sqlite.databases.DbWrapper;
 
 public abstract class Table {
     protected final DbWrapper dbWrapper;
+    protected final String name;
 
-    protected Table(DbWrapper dbWrapper) {
+    protected Table(DbWrapper dbWrapper, String name) {
         this.dbWrapper = dbWrapper;
+        this.name = name;
     }
 
     public abstract void createTable(SQLiteDatabase db);
+
+    public String getName() {
+        return this.name;
+    }
 }

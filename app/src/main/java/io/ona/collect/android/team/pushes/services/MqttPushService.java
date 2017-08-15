@@ -1,4 +1,4 @@
-package io.ona.collect.android.team.pushes.systems;
+package io.ona.collect.android.team.pushes.services;
 
 import android.content.Context;
 import android.util.Log;
@@ -28,14 +28,15 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
 import io.ona.collect.android.team.persistence.carriers.Connection;
+import io.ona.collect.android.team.persistence.carriers.Subscription;
 import io.ona.collect.android.team.pushes.messages.types.PushMessage;
 
 /**
  * Created by Jason Rogena - jrogena@ona.io on 04/08/2017.
  */
 
-public class MqttPushSystem extends PushSystem {
-    private static final String TAG = MqttPushSystem.class.getSimpleName();
+public class MqttPushService extends PushService {
+    private static final String TAG = MqttPushService.class.getSimpleName();
     private static final String NAME = "MQTT";
     private static final int CONNECTION_TIMEOUT = 60;
     private static final int KEEP_ALIVE_INTERVAL = 60;
@@ -45,20 +46,16 @@ public class MqttPushSystem extends PushSystem {
     private static final String APP_KEYSTORE_FILE = "team.android.collect.ona.io.bks";
     private static final String APP_KEYSTORE_PASSWORD = "bU3mVNhcMHn8RwJBsKEdMBbpN";
 
-    public MqttPushSystem(Context context, ConnectionListener connectionListener,
-                             MessageListener messageListener) {
+    public MqttPushService(Context context, ConnectionListener connectionListener,
+                           MessageListener messageListener) {
         super(context, NAME, connectionListener, messageListener);
     }
 
     @Override
-    public boolean connect(final Connection connection) {
+    public boolean connect(final Connection connection) throws ConnectionException {
+        super.connect(connection);
+
         String clientId = getClientId(connection);
-        if (mqttAndroidClient != null
-                && (!mqttAndroidClient.isConnected()
-                || !clientId.equals(mqttAndroidClient.getClientId())
-                || !connection.getServerUri().equals(mqttAndroidClient.getServerURI()))) {
-            disconnect();
-        }
 
         if (mqttAndroidClient == null) {
             mqttAndroidClient = new MqttAndroidClient(context, connection.getServerUri(), clientId);
@@ -82,7 +79,8 @@ public class MqttPushSystem extends PushSystem {
                     @Override
                     public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
                         exception.printStackTrace();
-                        Log.w(TAG, "Unable to connect to the MQTT broker because of " + exception.getMessage());
+                        Log.w(TAG, "Unable to connect to the MQTT broker because of " +
+                                exception.getMessage());
                         connectionListener.onConnected(connection, false);
                     }
                 });
@@ -117,8 +115,8 @@ public class MqttPushSystem extends PushSystem {
 
                 return true;
             } catch (Exception e) {
-                disconnect();
-                e.printStackTrace();
+                disconnect(connection, true);
+                throw new ConnectionException(e);
             }
         }
 
@@ -153,7 +151,8 @@ public class MqttPushSystem extends PushSystem {
             KeyStore ks;
             ks = KeyStore.getInstance("BKS");
             ks.load(clientInputStream, APP_KEYSTORE_PASSWORD.toCharArray());
-            KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            KeyManagerFactory kmf = KeyManagerFactory
+                    .getInstance(KeyManagerFactory.getDefaultAlgorithm());
             kmf.init(ks, APP_KEYSTORE_PASSWORD.toCharArray());
 
             ctx = SSLContext.getInstance("TLSv1");
@@ -178,7 +177,52 @@ public class MqttPushSystem extends PushSystem {
     }
 
     @Override
-    public boolean disconnect() {
+    public boolean disconnect(Connection connection, boolean permanent) throws ConnectionException {
+        super.disconnect(connection, permanent);
+
+        if (mqttAndroidClient != null) {
+            try {
+                mqttAndroidClient.disconnect();
+                mqttAndroidClient = null;
+
+                return true;
+            } catch (MqttException e) {
+                throw new ConnectionException(e);
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean subscribe(Subscription subscription) throws SubscriptionException {
+        super.subscribe(subscription);
+
+        if (mqttAndroidClient != null) {
+            try {
+                mqttAndroidClient.subscribe(subscription.topic, subscription.qos);
+                return true;
+            } catch (MqttException e) {
+                throw new SubscriptionException(e);
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean unsubscribe(Subscription subscription) throws SubscriptionException {
+        super.unsubscribe(subscription);
+
+        if (mqttAndroidClient != null) {
+            try {
+                mqttAndroidClient.unsubscribe(subscription.topic);
+                return true;
+            } catch (MqttException e) {
+                throw new SubscriptionException(e);
+            }
+        }
+
         return false;
     }
 }

@@ -3,7 +3,6 @@ package io.ona.collect.android.team.services;
 import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.util.Log;
 
@@ -11,8 +10,8 @@ import java.util.List;
 
 import io.ona.collect.android.team.application.TeamManagement;
 import io.ona.collect.android.team.persistence.carriers.Connection;
-import io.ona.collect.android.team.persistence.preferences.OdkSharedPreferences;
-import io.ona.collect.android.team.pushes.systems.PushSystem;
+import io.ona.collect.android.team.persistence.sqlite.databases.tables.ConnectionTable;
+import io.ona.collect.android.team.pushes.services.PushService;
 
 /**
  * Created by Jason Rogena - jrogena@ona.io on 10/08/2017.
@@ -27,54 +26,52 @@ public class StartupService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-
+        startSystems();
     }
 
     private void startSystems() {
-    }
-
-    private void startSystem(PushSystem system) {
-        // 1. Check if there's a stored active connection in the database
-        List<Connection> activeConnections = TeamManagement.getInstance()
-                .getTeamManagementDatabase().getConnectionTable().getAllActiveConnections(system);
-
-        switch (activeConnections.size()) {
-            case 0:
-                try {
-                    createConnectionFromOdkSharedPreference();
-                } catch (PackageManager.NameNotFoundException e) {
-                    Log.e(TAG, Log.getStackTraceString(e));
-                }
-                break;
-            case 1:
-                break;
-            default:
-                break;
+        for (PushService curSystem : TeamManagement.getInstance().getActivePushServices()) {
+            startSystem(curSystem);
         }
     }
 
-    private void createConnectionFromOdkSharedPreference()
-            throws PackageManager.NameNotFoundException {
-        SharedPreferences preferences = OdkSharedPreferences.getOdkPreferences();
-        String protocol = preferences.getString(OdkSharedPreferences.KEY_PROTOCOL, null);
-        if (protocol != null) {
-            if (protocol.equals(OdkSharedPreferences.PROTOCOL_ODK)
-                    || protocol.equals(OdkSharedPreferences.PROTOCOL_OTHER)) {
-                Intent serviceIntent = new Intent(this, ConnectionService.class);
-                String[] keys = new String[]{
-                        OdkSharedPreferences.KEY_PROTOCOL,
-                        OdkSharedPreferences.KEY_USERNAME,
-                        OdkSharedPreferences.KEY_PASSWORD,
-                        OdkSharedPreferences.KEY_SERVER_URL,
-                        OdkSharedPreferences.KEY_FORMLIST_URL,
-                        OdkSharedPreferences.KEY_SUBMISSION_URL
-                };
-                for (int i = 0; i < keys.length; i++) {
-                    serviceIntent.putExtra(keys[i], preferences.getString(keys[i], null));
-                }
-                startService(serviceIntent);
+    /**
+     * Starts connections to the provided push notification system
+     *
+     * @param system    The system to create connections to
+     */
+    private void startSystem(PushService system) {
+        // Check if there's a stored active connection in the database
+        ConnectionTable ct = (ConnectionTable) TeamManagement.getInstance()
+                .getTeamManagementDatabase().getTable(ConnectionTable.TABLE_NAME);
+        try {
+            List<Connection> activeConnections = ct.getAllActiveConnections(system);
+            switch (activeConnections.size()) {
+                case 0:
+                    try {
+                        startConnection(Connection.createFromSharedPreference(system, true));
+                    } catch (PackageManager.NameNotFoundException e) {
+                        Log.e(TAG, Log.getStackTraceString(e));
+                    } catch (ConnectionService.ProtocolNotSupportedException e) {
+                        Log.e(TAG, Log.getStackTraceString(e));
+                    }
+                    break;
+                case 1:
+                    startConnection(activeConnections.get(0));
+                    break;
+                default:
+                    Log.e(TAG, "More than one active connection to "
+                            + system.getName() + " found in the database. Not creating any");
+                    break;
             }
+        } catch (PushService.PushSystemNotFoundException e) {
+            e.printStackTrace();
         }
+    }
+
+    private void startConnection(Connection connection) {
+        Intent serviceIntent = new Intent(this, ConnectionService.class);
+        serviceIntent.putExtra(ConnectionService.KEY_CONNECTION, connection);
     }
 
     public static void start(Context context) {

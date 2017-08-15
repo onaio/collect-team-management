@@ -15,6 +15,7 @@
 package io.ona.collect.android.team.persistence.sqlite.databases;
 
 import java.io.File;
+import java.util.HashMap;
 
 import android.app.Application;
 import android.database.sqlite.SQLiteDatabase;
@@ -24,6 +25,7 @@ import android.os.Environment;
 import android.util.Log;
 
 import io.ona.collect.android.team.R;
+import io.ona.collect.android.team.persistence.sqlite.databases.tables.Table;
 
 /**
  * We've taken this from Android's DbWrapper. However, we can't appropriately lock the
@@ -51,6 +53,7 @@ public abstract class DbWrapper {
     private final String name;
     private final CursorFactory factory;
     private final int newVersion;
+    protected final HashMap<String, Table> tables;
 
     private SQLiteDatabase database = null;
     private boolean isInitializing = false;
@@ -77,6 +80,7 @@ public abstract class DbWrapper {
         this.name = name;
         this.factory = factory;
         this.newVersion = version;
+        this.tables = new HashMap<>();
     }
 
 
@@ -270,5 +274,27 @@ public abstract class DbWrapper {
      * @param db The dbWrapper.
      */
     public void onOpen(SQLiteDatabase db) {
+    }
+
+    public Table getTable(String name) throws TableNotFoundException {
+        if (tables.containsKey(name)) {
+            return tables.get(name);
+        }
+
+        throw new TableNotFoundException("Could not find table " + name);
+    }
+
+    public static class TableNotFoundException extends SQLiteException {
+        public TableNotFoundException() {
+            super();
+        }
+
+        public TableNotFoundException(String error) {
+            super(error);
+        }
+
+        public TableNotFoundException(String error, Throwable cause) {
+            super(error, cause);
+        }
     }
 }

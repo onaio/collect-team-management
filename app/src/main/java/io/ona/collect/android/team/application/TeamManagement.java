@@ -10,8 +10,8 @@ import java.util.ArrayList;
 import io.ona.collect.android.team.R;
 import io.ona.collect.android.team.persistence.sqlite.databases.TeamManagementDbWrapper;
 import io.ona.collect.android.team.pushes.messages.handlers.MessageHandler;
-import io.ona.collect.android.team.pushes.systems.MqttPushSystem;
-import io.ona.collect.android.team.pushes.systems.PushSystem;
+import io.ona.collect.android.team.pushes.services.MqttPushService;
+import io.ona.collect.android.team.pushes.services.PushService;
 import io.ona.collect.android.team.services.StartupService;
 import io.ona.collect.android.team.utils.Permissions;
 
@@ -26,7 +26,7 @@ public class TeamManagement extends Application {
     private TeamManagementDbWrapper teamManagementDatabase;
     private static TeamManagement instance;
     private MessageHandler messageHandler;
-    private ArrayList<PushSystem> activePushSystems;
+    private ArrayList<PushService> activePushServices;
 
     public static TeamManagement getInstance() {
         return instance;
@@ -48,8 +48,8 @@ public class TeamManagement extends Application {
 
     private void preparePushSystems() {
         messageHandler = new MessageHandler();
-        activePushSystems = new ArrayList<>();
-        activePushSystems.add(new MqttPushSystem(this, messageHandler, messageHandler));
+        activePushServices = new ArrayList<>();
+        activePushServices.add(new MqttPushService(this, messageHandler, messageHandler));
     }
 
     @Override
@@ -74,8 +74,8 @@ public class TeamManagement extends Application {
         return messageHandler;
     }
 
-    public ArrayList<PushSystem> getActivePushSystems() {
-        return activePushSystems;
+    public ArrayList<PushService> getActivePushServices() {
+        return activePushServices;
     }
 
     /**

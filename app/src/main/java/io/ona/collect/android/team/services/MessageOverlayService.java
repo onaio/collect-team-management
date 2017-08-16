@@ -57,7 +57,6 @@ public class MessageOverlayService extends Service implements View.OnTouchListen
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.e("ODKState", "service started");
         windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
     }

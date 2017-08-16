@@ -194,12 +194,11 @@ public class ConnectionTable extends Table {
         List<String> selections = new ArrayList<>();
         for (Connection curConnection : connections) {
             if (curConnection != null) {
-                if (!TextUtils.isEmpty(selectionArgs)) {
-                    selectionArgs += ", ";
-                }
-
                 if (curConnection.id != Connection.DEFAULT_ID) {
-                    selectionArgs += String.valueOf(curConnection.id);
+                    if (!TextUtils.isEmpty(selectionArgs)) {
+                        selectionArgs += ", ";
+                    }
+                    selectionArgs += "?";
                     selections.add(String.valueOf(curConnection.id));
                 } else {
                     throw new SQLiteException("Not able to run query against connection with id " +

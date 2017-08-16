@@ -9,6 +9,8 @@ import android.provider.Settings;
 import android.support.annotation.RequiresApi;
 import android.telephony.TelephonyManager;
 
+import org.eclipse.paho.android.service.MqttAndroidClient;
+
 import java.io.Serializable;
 import java.util.List;
 
@@ -26,14 +28,12 @@ import io.ona.collect.android.team.pushes.messages.types.PushMessage;
 public abstract class PushService implements Serializable {
     private static final String TAG = PushService.class.getSimpleName();
     private static final String ANDROID6_FAKE_MAC = "02:00:00:00:00:00";
-    protected final Context context;
     protected final String name;
     protected final ConnectionListener connectionListener;
     protected final MessageListener messageListener;
 
-    protected PushService(Context context, String name,
-                          ConnectionListener connectionListener, MessageListener messageListener) {
-        this.context = context.getApplicationContext();
+    protected PushService(String name, ConnectionListener connectionListener,
+                          MessageListener messageListener) {
         this.name = name;
         this.connectionListener = connectionListener;
         this.messageListener = messageListener;
@@ -54,6 +54,7 @@ public abstract class PushService implements Serializable {
      * @return The device id
      */
     private String getDeviceId() {
+        Context context = TeamManagement.getInstance();
         TelephonyManager telephonyManager =
                 (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         String deviceId = telephonyManager.getDeviceId();
@@ -102,7 +103,7 @@ public abstract class PushService implements Serializable {
      * @return {@code true} if able to establish a connection
      * @throws ConnectionException
      */
-    public boolean connect(Connection connection) throws ConnectionException {
+    public synchronized boolean connect(Connection connection) throws ConnectionException {
         try {
             ConnectionTable ct = (ConnectionTable) TeamManagement.getInstance()
                     .getTeamManagementDatabase().getTable(ConnectionTable.TABLE_NAME);
@@ -130,7 +131,7 @@ public abstract class PushService implements Serializable {
      * @return {@code true} If system was able to successfully disconnect
      * @throws ConnectionException
      */
-    public boolean disconnect(Connection connection, boolean permanent) throws ConnectionException {
+    public synchronized boolean disconnect(Connection connection, boolean permanent) throws ConnectionException {
         if (permanent) {
             try {
                 ConnectionTable ct = (ConnectionTable) TeamManagement.getInstance()
@@ -152,7 +153,7 @@ public abstract class PushService implements Serializable {
         return false;
     }
 
-    public boolean subscribe(Subscription subscription)
+    public synchronized boolean subscribe(Subscription subscription)
             throws SubscriptionException {
         try {
             SubscriptionTable st = (SubscriptionTable) TeamManagement.getInstance()
@@ -167,7 +168,7 @@ public abstract class PushService implements Serializable {
         return true;
     }
 
-    public boolean unsubscribe(Subscription subscription)
+    public synchronized boolean unsubscribe(Subscription subscription)
             throws SubscriptionException {
         try {
             SubscriptionTable st = (SubscriptionTable) TeamManagement.getInstance()
@@ -182,15 +183,15 @@ public abstract class PushService implements Serializable {
         return true;
     }
 
-    public interface ConnectionListener {
-        void onConnected(Connection connection, boolean status);
+    public interface ConnectionListener extends Serializable {
+        void onConnected(Connection connection, boolean status, boolean wasReconnection);
 
         void onDisconnected();
 
         void onConnectionLost(Connection connection, Throwable throwable);
     }
 
-    public interface MessageListener {
+    public interface MessageListener extends Serializable {
         void onMessageReceived(PushMessage message);
 
         void onMessageSent(PushMessage message);

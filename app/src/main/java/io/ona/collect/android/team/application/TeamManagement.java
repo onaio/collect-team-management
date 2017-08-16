@@ -4,10 +4,13 @@ import android.Manifest;
 import android.app.Application;
 import android.os.Environment;
 
+import org.eclipse.paho.android.service.MqttAndroidClient;
+
 import java.io.File;
 import java.util.ArrayList;
 
 import io.ona.collect.android.team.R;
+import io.ona.collect.android.team.persistence.resolvers.OdkFormsContentResolver;
 import io.ona.collect.android.team.persistence.sqlite.databases.TeamManagementDbWrapper;
 import io.ona.collect.android.team.pushes.messages.handlers.MessageHandler;
 import io.ona.collect.android.team.pushes.services.MqttPushService;
@@ -24,6 +27,7 @@ public class TeamManagement extends Application {
     public static final String ODK_ROOT = Environment.getExternalStorageDirectory()
             + File.separator + "odk";
     private TeamManagementDbWrapper teamManagementDatabase;
+    private OdkFormsContentResolver odkFormsContentResolver;
     private static TeamManagement instance;
     private MessageHandler messageHandler;
     private ArrayList<PushService> activePushServices;
@@ -36,9 +40,17 @@ public class TeamManagement extends Application {
     public void onCreate() {
         super.onCreate();
         this.instance = this;
-        prepareDatabases();
-        preparePushSystems();
-        StartupService.start(this);
+        initBackend();
+    }
+
+    public void initBackend() {
+        if (Permissions.getUnauthorizedCriticalPermissions(this).size() == 0) {
+            prepareDatabases();
+            preparePushSystems();
+            if (teamManagementDatabase != null) {
+                StartupService.start(this);
+            }
+        }
     }
 
     private void prepareDatabases() {
@@ -49,7 +61,7 @@ public class TeamManagement extends Application {
     private void preparePushSystems() {
         messageHandler = new MessageHandler();
         activePushServices = new ArrayList<>();
-        activePushServices.add(new MqttPushService(this, messageHandler, messageHandler));
+        activePushServices.add(new MqttPushService(messageHandler, messageHandler));
     }
 
     @Override
@@ -68,6 +80,14 @@ public class TeamManagement extends Application {
         }
 
         return teamManagementDatabase;
+    }
+
+    public OdkFormsContentResolver getOdkFormsContentResolver() {
+        if (odkFormsContentResolver == null) {
+            odkFormsContentResolver = new OdkFormsContentResolver();
+        }
+
+        return odkFormsContentResolver;
     }
 
     public MessageHandler getMessageHandler() {

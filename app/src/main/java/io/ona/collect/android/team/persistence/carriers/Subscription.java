@@ -1,6 +1,13 @@
 package io.ona.collect.android.team.persistence.carriers;
 
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
+
+import io.ona.collect.android.team.pushes.services.MqttPushService;
+import io.ona.collect.android.team.pushes.services.PushService;
 
 /**
  * Holds subscription data (theoretically stored by
@@ -9,8 +16,10 @@ import java.util.Date;
  * Created by Jason Rogena - jrogena@ona.io on 15/08/2017.
  */
 
-public class Subscription {
-    public static final int DEFAULT_ID = -1;
+public class Subscription implements Serializable {
+    private static final String FORM_SCHEMA_UPDATES_TOPIC_FORMAT = "forms/%s/schema";
+    private static final String FORM_MESSAGE_TOPIC_FORMAT = "forms/%s/messages";
+    public static final long DEFAULT_ID = -1;
     public static final int DEFAULT_QOS = -1;
     public final long id;
     public final Connection connection;
@@ -31,6 +40,10 @@ public class Subscription {
         this.updatedAt = updatedAt;
     }
 
+    public Subscription(Connection connection, String topic, int qos, boolean active) {
+        this(DEFAULT_ID, connection, topic, qos, active, Calendar.getInstance().getTime(), Calendar.getInstance().getTime());
+    }
+
     public Subscription(Subscription subscription) {
         this.id = subscription.id;
         this.connection = subscription.connection;
@@ -39,5 +52,35 @@ public class Subscription {
         this.active = subscription.active;
         this.createdAt = subscription.createdAt;
         this.updatedAt = subscription.updatedAt;
+    }
+
+    public static List<Subscription> getSubscriptionsFromOdkForm(Connection connection,
+                                                                 OdkForm odkForm)
+            throws PushService.PushSystemNotFoundException {
+        List<Subscription> subscriptions = new ArrayList<>();
+
+        if (odkForm != null) {
+            if (connection.pushService.getName().equals(MqttPushService.NAME)) {
+                // Create subscription for schema updates
+                String updatesTopic =
+                        String.format(FORM_SCHEMA_UPDATES_TOPIC_FORMAT, odkForm.getPkid());
+                subscriptions.add(new Subscription(
+                        connection, updatesTopic, MqttPushService.QOS_EXACTLY_ONCE,
+                        !odkForm.state.equals(OdkForm.STATE_FORM_DELETED)));
+
+                // Create subscription for free-form messages
+                String messagesTopic =
+                        String.format(FORM_MESSAGE_TOPIC_FORMAT, odkForm.getPkid());
+                subscriptions.add(new Subscription(
+                        connection, messagesTopic, MqttPushService.QOS_EXACTLY_ONCE,
+                        !odkForm.state.equals(OdkForm.STATE_FORM_DELETED)));
+            } else {
+                throw new PushService.PushSystemNotFoundException(
+                        "Could not create topics for push service "
+                                + connection.pushService.getName());
+            }
+        }
+
+        return subscriptions;
     }
 }

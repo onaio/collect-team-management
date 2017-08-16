@@ -2,6 +2,6 @@
     <string name="app_name">Team Management</string>
     <string name="title_activity_floating">FloatingActivity</string>
     <string name="sdcard_unmounted">Cannot access the SD card. Perhaps it is mounted via USB? (Current state: %s)</string>
-    <string name="default_mqtt_server"></string>
-    <string name="default_mqtt_port"></string>
+    <string name="default_mqtt_server">tcp://35.195.88.128</string>
+    <string name="default_mqtt_port">1883</string>
 </resources>

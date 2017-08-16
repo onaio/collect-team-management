@@ -2,6 +2,7 @@ package io.ona.collect.android.team.persistence.carriers;
 
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.os.Bundle;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -10,7 +11,6 @@ import java.util.Date;
 
 import io.ona.collect.android.team.R;
 import io.ona.collect.android.team.application.TeamManagement;
-import io.ona.collect.android.team.persistence.preferences.OdkPreferences;
 import io.ona.collect.android.team.persistence.preferences.TeamMangementPreferences;
 import io.ona.collect.android.team.pushes.services.PushService;
 import io.ona.collect.android.team.services.ConnectionService;
@@ -22,7 +22,13 @@ import io.ona.collect.android.team.services.ConnectionService;
  */
 
 public class Connection implements Serializable {
-    public static final int DEFAULT_ID = -1;
+    public static final long DEFAULT_ID = -1;
+    public static final String KEY_PROTOCOL = "protocol";
+    public static final String KEY_USERNAME = "username";
+    public static final String KEY_PASSWORD = "password";
+    public static final String PROTOCOL_ODK = "odk_default";
+    public static final String PROTOCOL_OTHER = "other_protocol";
+
     public final long id;
     public final PushService pushService;
     public final String server;
@@ -83,10 +89,9 @@ public class Connection implements Serializable {
         return server + ":" + String.valueOf(port);
     }
 
-    public static Connection createFromSharedPreference(PushService system, boolean active)
+    public static Connection createFromBundle(PushService system, Bundle bundle, boolean active)
             throws PackageManager.NameNotFoundException, ConnectionService.ProtocolNotSupportedException {
-        SharedPreferences odkPreferences = OdkPreferences.getPreferences();
-        String protocol = odkPreferences.getString(OdkPreferences.KEY_PROTOCOL, null);
+        String protocol = bundle.getString(KEY_PROTOCOL);
         if (ConnectionService.SUPPORTED_ODK_CONNECTION_PROTOCOLS.contains(protocol)) {
             SharedPreferences tmPreferences = TeamMangementPreferences.getPreferences();
             String server = tmPreferences.getString(TeamMangementPreferences.KEY_MQTT_SERVER,
@@ -94,8 +99,8 @@ public class Connection implements Serializable {
             int port = tmPreferences.getInt(TeamMangementPreferences.KEY_MQTT_PORT,
                     Integer.parseInt(
                             TeamManagement.getInstance().getString(R.string.default_mqtt_port)));
-            String username = odkPreferences.getString(OdkPreferences.KEY_USERNAME, null);
-            String password = odkPreferences.getString(OdkPreferences.KEY_PASSWORD, null);
+            String username = bundle.getString(KEY_USERNAME);
+            String password = bundle.getString(KEY_PASSWORD);
             return new Connection(system, server, port, username, password, active);
         } else {
             throw new ConnectionService.ProtocolNotSupportedException(protocol + " is currently not supported");

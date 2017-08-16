@@ -44,9 +44,9 @@ public class MessageHandler implements PushService.ConnectionListener, PushServi
     }
 
     @Override
-    public void onConnected(Connection connection, boolean status) {
+    public void onConnected(Connection connection, boolean status, boolean wasReconnection) {
         for (PushService.ConnectionListener connectionListener : connectionListeners) {
-            connectionListener.onConnected(connection, status);
+            connectionListener.onConnected(connection, status, wasReconnection);
         }
     }
 

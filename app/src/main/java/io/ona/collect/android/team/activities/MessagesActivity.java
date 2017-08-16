@@ -2,13 +2,16 @@ package io.ona.collect.android.team.activities;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import io.ona.collect.android.team.R;
 import io.ona.collect.android.team.application.TeamManagement;
@@ -18,9 +21,6 @@ public class MessagesActivity extends AppCompatActivity {
     private static final String TAG = MessagesActivity.class.getSimpleName();
     private static final int REQUEST_CODE_PERM_OVERLAY = 213;
     private static final int REQUEST_CODE_CRITICAL_PERMISSIONS = 231;
-    private static final String[] CRITICAL_PERMISSIONS = new String[]{
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,21 +52,17 @@ public class MessagesActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
             case REQUEST_CODE_CRITICAL_PERMISSIONS:
-                TeamManagement.getInstance().getTeamManagementDatabase();
-                requestCriticalPermissions();
+                if (requestCriticalPermissions()) {
+                    TeamManagement.getInstance().initBackend();
+                    Toast.makeText(MessagesActivity.this, "Initializing backend", Toast.LENGTH_LONG).show();
+                }
                 break;
         }
     }
 
     private boolean requestCriticalPermissions() {
         boolean result = true;
-        ArrayList<String> permissionsToRequest = new ArrayList<>();
-        for (String curPermission : CRITICAL_PERMISSIONS) {
-            if (!Permissions.check(this, curPermission)) {
-                permissionsToRequest.add(curPermission);
-            }
-        }
-
+        List<String> permissionsToRequest = Permissions.getUnauthorizedCriticalPermissions(this);
         if (permissionsToRequest.size() > 0) {
             result = false;
             Permissions.request(this,

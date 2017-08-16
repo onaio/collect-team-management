@@ -31,7 +31,11 @@ public class SubscriptionService extends IntentService {
                 ArrayList<Subscription> subscriptions = (ArrayList<Subscription>) serializable;
                 for (Subscription curSubscription : subscriptions) {
                     try {
-                        curSubscription.connection.pushService.subscribe(curSubscription);
+                        if (curSubscription.active) {
+                            curSubscription.connection.pushService.subscribe(curSubscription);
+                        } else {
+                            curSubscription.connection.pushService.unsubscribe(curSubscription);
+                        }
                     } catch (PushService.SubscriptionException e) {
                         Log.e(TAG, Log.getStackTraceString(e));
                     }

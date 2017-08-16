@@ -24,16 +24,14 @@ public class TeamManagementDbWrapper extends DbWrapper {
 
     public TeamManagementDbWrapper(Application application) {
         super(application, DATABASE_PATH, DATABASE_NAME, null, DATABASE_VERSION);
+        tables.put(ConnectionTable.TABLE_NAME, new ConnectionTable(this));
+        tables.put(SubscriptionTable.TABLE_NAME, new SubscriptionTable(this));
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        ConnectionTable connectionTable = new ConnectionTable(this);
-        connectionTable.createTable(db);
-        tables.put(connectionTable.getName(), connectionTable);
-        SubscriptionTable subscriptionTable = new SubscriptionTable(this);
-        subscriptionTable.createTable(db);
-        tables.put(subscriptionTable.getName(), subscriptionTable);
+        tables.get(ConnectionTable.TABLE_NAME).createTable(db);
+        tables.get(SubscriptionTable.TABLE_NAME).createTable(db);
     }
 
     @Override

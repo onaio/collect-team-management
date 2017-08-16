@@ -66,8 +66,11 @@ public class SubscriptionTable extends Table {
         Cursor cursor = null;
         try {
             cursor = dbWrapper.getReadableDatabase().query(TABLE_NAME, null,
-                    COLUMN_CONNECTION_ID + " = ?",
-                    new String[]{String.valueOf(connection.id)},
+                    COLUMN_CONNECTION_ID + " = ? and " + COLUMN_STATUS + " = ?",
+                    new String[]{
+                            String.valueOf(connection.id),
+                            String.valueOf(STATUS_ACTIVE)
+                    },
                     null, null, null);
             if (cursor != null && cursor.getCount() > 0) {
                 for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
@@ -100,9 +103,26 @@ public class SubscriptionTable extends Table {
         SQLiteDatabase db = dbWrapper.getWritableDatabase();
         try {
             db.beginTransaction();
+            long connectionId = subscription.connection.id;
+            if (connectionId == Connection.DEFAULT_ID) {
+                ConnectionTable ct =
+                        (ConnectionTable) dbWrapper.getTable(ConnectionTable.TABLE_NAME);
+                Connection connection = subscription.connection;
+                Connection tmpConnection = ct.getConnectionWithDetails(
+                        connection.pushService.getName(),
+                        connection.server,
+                        connection.port,
+                        connection.username,
+                        connection.password);
+                connectionId = tmpConnection.id;
+            }
+
+            if (connectionId == Connection.DEFAULT_ID) {
+                throw new SQLiteException("Cannot associate with a connection without and id");
+            }
 
             ContentValues cv = new ContentValues();
-            cv.put(COLUMN_CONNECTION_ID, subscription.id);
+            cv.put(COLUMN_CONNECTION_ID, connectionId);
             cv.put(COLUMN_TOPIC, subscription.topic);
             cv.put(COLUMN_QOS, subscription.qos);
             cv.put(COLUMN_STATUS, subscription.active ? STATUS_ACTIVE : STATUS_INACTIVE);

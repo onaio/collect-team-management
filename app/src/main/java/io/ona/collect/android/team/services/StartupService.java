@@ -3,13 +3,14 @@ package io.ona.collect.android.team.services;
 import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.util.Log;
 
 import java.util.List;
 
 import io.ona.collect.android.team.application.TeamManagement;
+import io.ona.collect.android.team.broadcasts.OdkConnSettingsRequestBroadcast;
 import io.ona.collect.android.team.persistence.carriers.Connection;
+import io.ona.collect.android.team.persistence.sqlite.databases.DbWrapper;
 import io.ona.collect.android.team.persistence.sqlite.databases.tables.ConnectionTable;
 import io.ona.collect.android.team.pushes.services.PushService;
 
@@ -26,6 +27,7 @@ public class StartupService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
+        Log.d(TAG, "service started");
         startSystems();
     }
 
@@ -42,19 +44,14 @@ public class StartupService extends IntentService {
      */
     private void startSystem(PushService system) {
         // Check if there's a stored active connection in the database
-        ConnectionTable ct = (ConnectionTable) TeamManagement.getInstance()
-                .getTeamManagementDatabase().getTable(ConnectionTable.TABLE_NAME);
         try {
+            ConnectionTable ct = (ConnectionTable) TeamManagement.getInstance()
+                    .getTeamManagementDatabase().getTable(ConnectionTable.TABLE_NAME);
             List<Connection> activeConnections = ct.getAllActiveConnections(system);
             switch (activeConnections.size()) {
                 case 0:
-                    try {
-                        startConnection(Connection.createFromSharedPreference(system, true));
-                    } catch (PackageManager.NameNotFoundException e) {
-                        Log.e(TAG, Log.getStackTraceString(e));
-                    } catch (ConnectionService.ProtocolNotSupportedException e) {
-                        Log.e(TAG, Log.getStackTraceString(e));
-                    }
+                    // No connections yet, request Collect to send current connection settings
+                    OdkConnSettingsRequestBroadcast.sendBroadcast(this);
                     break;
                 case 1:
                     startConnection(activeConnections.get(0));
@@ -65,13 +62,16 @@ public class StartupService extends IntentService {
                     break;
             }
         } catch (PushService.PushSystemNotFoundException e) {
-            e.printStackTrace();
+            Log.e(TAG, Log.getStackTraceString(e));
+        } catch (DbWrapper.TableNotFoundException e) {
+            Log.e(TAG, Log.getStackTraceString(e));
         }
     }
 
     private void startConnection(Connection connection) {
         Intent serviceIntent = new Intent(this, ConnectionService.class);
         serviceIntent.putExtra(ConnectionService.KEY_CONNECTION, connection);
+        startService(serviceIntent);
     }
 
     public static void start(Context context) {

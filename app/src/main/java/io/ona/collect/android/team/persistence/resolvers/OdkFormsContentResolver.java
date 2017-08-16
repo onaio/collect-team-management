@@ -38,7 +38,7 @@ public class OdkFormsContentResolver {
      *
      * @return
      */
-    public List<OdkForm> getAllDownloadedForms() {
+    public List<OdkForm> getAllDownloadedForms() throws OdkForm.MalformedObjectException {
         List<OdkForm> forms = new ArrayList<>();
         ContentResolver cr = TeamManagement.getInstance().getContentResolver();
         Cursor cursor = null;
@@ -52,8 +52,6 @@ public class OdkFormsContentResolver {
                     }
                 }
             }
-        } catch (Exception e) {
-            
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -62,12 +60,13 @@ public class OdkFormsContentResolver {
         return forms;
     }
 
-    private OdkForm extractOdkForm(Cursor cursor) {
+    private OdkForm extractOdkForm(Cursor cursor) throws OdkForm.MalformedObjectException {
         if (cursor != null && !cursor.isAfterLast()) {
-            OdkForm form = new OdkForm();
+            OdkForm form = new OdkForm(
+                    cursor.getString(cursor.getColumnIndex(COLUMN_JR_FORM_ID)),
+                    OdkForm.STATE_FORM_DOWNLOADED);
             form.setDisplayName(cursor.getString(cursor.getColumnIndex(COLUMN_DISPLAY_NAME)));
             form.setDescription(cursor.getString(cursor.getColumnIndex(COLUMN_DESCRIPTION)));
-            form.setJrFormId(cursor.getString(cursor.getColumnIndex(COLUMN_JR_FORM_ID)));
             form.setJrVersion(cursor.getString(cursor.getColumnIndex(COLUMN_JR_VERSION)));
             form.setJrDownloadUrl(cursor.getString(cursor.getColumnIndex(COLUMN_JR_DOWNLOAD_URL)));
             form.setJrManifestUrl(cursor.getString(cursor.getColumnIndex(COLUMN_JR_MANIFEST_URL)));

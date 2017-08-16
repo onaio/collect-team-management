@@ -8,6 +8,7 @@ import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
@@ -27,6 +28,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
+import io.ona.collect.android.team.application.TeamManagement;
 import io.ona.collect.android.team.persistence.carriers.Connection;
 import io.ona.collect.android.team.persistence.carriers.Subscription;
 import io.ona.collect.android.team.pushes.messages.types.PushMessage;
@@ -37,28 +39,32 @@ import io.ona.collect.android.team.pushes.messages.types.PushMessage;
 
 public class MqttPushService extends PushService {
     private static final String TAG = MqttPushService.class.getSimpleName();
-    private static final String NAME = "MQTT";
+    public static final String NAME = "MQTT";
+    public static final int QOS_AT_MOST_ONCE = 0;
+    public static final int QOS_AT_LEAST_ONCE = 1;
+    public static final int QOS_EXACTLY_ONCE = 2;
     private static final int CONNECTION_TIMEOUT = 60;
     private static final int KEEP_ALIVE_INTERVAL = 60;
-    private static MqttAndroidClient mqttAndroidClient;
     private static final String CA_KEYSTORE_FILE = "mqtt_ca.bks";
     private static final String CA_KEYSTORE_PASSWORD = "usTjh46qEvHeWmhTVB6CXQjFb";
     private static final String APP_KEYSTORE_FILE = "team.android.collect.ona.io.bks";
     private static final String APP_KEYSTORE_PASSWORD = "bU3mVNhcMHn8RwJBsKEdMBbpN";
+    private static MqttAndroidClient mqttAndroidClient;
 
-    public MqttPushService(Context context, ConnectionListener connectionListener,
+    public MqttPushService(ConnectionListener connectionListener,
                            MessageListener messageListener) {
-        super(context, NAME, connectionListener, messageListener);
+        super(NAME, connectionListener, messageListener);
     }
 
     @Override
-    public boolean connect(final Connection connection) throws ConnectionException {
+    public synchronized boolean connect(final Connection connection) throws ConnectionException {
         super.connect(connection);
 
         String clientId = getClientId(connection);
 
         if (mqttAndroidClient == null) {
-            mqttAndroidClient = new MqttAndroidClient(context, connection.getServerUri(), clientId);
+            mqttAndroidClient = new MqttAndroidClient(TeamManagement.getInstance(),
+                    connection.getServerUri(), clientId);
             try {
                 Log.d(TAG, "About to try connection");
                 MqttConnectOptions options = new MqttConnectOptions();
@@ -66,26 +72,14 @@ public class MqttPushService extends PushService {
                 options.setAutomaticReconnect(true);
                 options.setConnectionTimeout(CONNECTION_TIMEOUT);
                 options.setKeepAliveInterval(KEEP_ALIVE_INTERVAL);
-                options.setSocketFactory(getSocketFactory());
-
-                final IMqttToken token = mqttAndroidClient.connect(options);
-                Log.d(TAG, "Post connect code");
-                token.setActionCallback(new IMqttActionListener() {
+                //options.setSocketFactory(getSocketFactory());
+                mqttAndroidClient.setCallback(new MqttCallbackExtended() {
                     @Override
-                    public void onSuccess(IMqttToken asyncActionToken) {
-                        connectionListener.onConnected(connection, true);
+                    public void connectComplete(boolean reconnect, String serverURI) {
+                        Log.d(TAG, "Was successfully able to connect to MQTT broker");
+                        connectionListener.onConnected(connection, true, reconnect);
                     }
 
-                    @Override
-                    public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                        exception.printStackTrace();
-                        Log.w(TAG, "Unable to connect to the MQTT broker because of " +
-                                exception.getMessage());
-                        connectionListener.onConnected(connection, false);
-                    }
-                });
-
-                mqttAndroidClient.setCallback(new MqttCallback() {
                     @Override
                     public void connectionLost(Throwable cause) {
                         Log.w(TAG, "Connection to broker lost");
@@ -113,6 +107,51 @@ public class MqttPushService extends PushService {
                     }
                 });
 
+                mqttAndroidClient.connect(options, null, new IMqttActionListener() {
+                    @Override
+                    public void onSuccess(IMqttToken asyncActionToken) {
+                    }
+
+                    @Override
+                    public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
+                        exception.printStackTrace();
+                        Log.w(TAG, "Unable to connect to the MQTT broker because of " +
+                                exception.getMessage());
+                        connectionListener.onConnected(connection, false, false);
+                    }
+                });
+
+                //final IMqttToken token = mqttAndroidClient.connect(options);
+                Log.d(TAG, "Post connect code");
+
+                /*mqttAndroidClient.setCallback(new MqttCallback() {
+                    @Override
+                    public void connectionLost(Throwable cause) {
+                        Log.w(TAG, "Connection to broker lost");
+                        connectionListener.onConnectionLost(connection, cause);
+                    }
+
+                    @Override
+                    public void messageArrived(String topic, MqttMessage message) throws Exception {
+                        messageListener.onMessageReceived(getPushMessage(topic, message));
+                    }
+
+                    @Override
+                    public void deliveryComplete(IMqttDeliveryToken token) {
+                        try {
+                            if (token != null) {
+                                String[] topics = token.getTopics();
+                                for (int i = 0; i < topics.length; i++) {
+                                    messageListener.onMessageSent(
+                                            getPushMessage(topics[i], token.getMessage()));
+                                }
+                            }
+                        } catch (MqttException e) {
+                            Log.e(TAG, Log.getStackTraceString(e));
+                        }
+                    }
+                });*/
+
                 return true;
             } catch (Exception e) {
                 disconnect(connection, true);
@@ -135,6 +174,7 @@ public class MqttPushService extends PushService {
     }
 
     private SSLSocketFactory getSocketFactory() throws Exception {
+        Context context = TeamManagement.getInstance();
         InputStream caInputStream = context.getAssets().open(CA_KEYSTORE_FILE);
         InputStream clientInputStream = context.getAssets().open(APP_KEYSTORE_FILE);
         try {
@@ -177,7 +217,7 @@ public class MqttPushService extends PushService {
     }
 
     @Override
-    public boolean disconnect(Connection connection, boolean permanent) throws ConnectionException {
+    public synchronized boolean disconnect(Connection connection, boolean permanent) throws ConnectionException {
         super.disconnect(connection, permanent);
 
         if (mqttAndroidClient != null) {
@@ -188,6 +228,8 @@ public class MqttPushService extends PushService {
                 return true;
             } catch (MqttException e) {
                 throw new ConnectionException(e);
+            } catch (NullPointerException e) {
+                Log.wtf(TAG, "Looks like MQTT client is null");
             }
         }
 
@@ -195,15 +237,18 @@ public class MqttPushService extends PushService {
     }
 
     @Override
-    public boolean subscribe(Subscription subscription) throws SubscriptionException {
+    public synchronized boolean subscribe(Subscription subscription) throws SubscriptionException {
         super.subscribe(subscription);
 
         if (mqttAndroidClient != null) {
             try {
                 mqttAndroidClient.subscribe(subscription.topic, subscription.qos);
+                Log.d(TAG, "Subscribed to " + subscription.topic + " with QoS " + subscription.qos);
                 return true;
             } catch (MqttException e) {
                 throw new SubscriptionException(e);
+            } catch (NullPointerException e) {
+                Log.wtf(TAG, "Looks like MQTT client is null");
             }
         }
 
@@ -211,15 +256,18 @@ public class MqttPushService extends PushService {
     }
 
     @Override
-    public boolean unsubscribe(Subscription subscription) throws SubscriptionException {
+    public synchronized boolean unsubscribe(Subscription subscription) throws SubscriptionException {
         super.unsubscribe(subscription);
 
         if (mqttAndroidClient != null) {
             try {
                 mqttAndroidClient.unsubscribe(subscription.topic);
+                Log.d(TAG, "Unsubscribed from " + subscription.topic);
                 return true;
             } catch (MqttException e) {
                 throw new SubscriptionException(e);
+            } catch (NullPointerException e) {
+                Log.wtf(TAG, "Looks like MQTT client is null");
             }
         }
 

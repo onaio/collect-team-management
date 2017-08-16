@@ -13,10 +13,35 @@ import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by Jason Rogena - jrogena@ona.io on 04/08/2017.
  */
 public class Permissions {
+    private static final String[] CRITICAL_PERMISSIONS = new String[]{
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.ACCESS_WIFI_STATE,
+            Manifest.permission.ACCESS_NETWORK_STATE,
+            Manifest.permission.INTERNET,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.WAKE_LOCK
+    };
+
+    public static List<String> getUnauthorizedCriticalPermissions(Context context) {
+        List<String> unauthorizedPermissions = new ArrayList<>();
+        for (String curPermission : CRITICAL_PERMISSIONS) {
+            if (!Permissions.check(context, curPermission)) {
+                unauthorizedPermissions.add(curPermission);
+            }
+        }
+
+        return unauthorizedPermissions;
+    }
+
     public static boolean check(Context context, String permission) {
         if(ContextCompat.checkSelfPermission(context, permission)
                 != PackageManager.PERMISSION_GRANTED) {

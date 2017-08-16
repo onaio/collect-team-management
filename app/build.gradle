@@ -43,10 +43,10 @@ dependencies {
     })
     compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'com.android.support:support-v4:25.3.1'
-    compile('org.eclipse.paho:org.eclipse.paho.android.service:1.1.0') {
+    compile('org.eclipse.paho:org.eclipse.paho.android.service:1.1.1') {
         exclude module: 'support-v4'
     }
-    compile('org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.0') {
+    compile('org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.1') {
         exclude module: 'support-v4'
     }
 }

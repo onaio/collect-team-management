@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import io.ona.collect.android.team.application.TeamManagement;
+import io.ona.collect.android.team.broadcasts.OdkConnSettingsRequestBroadcast;
 import io.ona.collect.android.team.persistence.carriers.Connection;
 import io.ona.collect.android.team.pushes.services.PushService;
 import io.ona.collect.android.team.services.ConnectionService;
@@ -25,18 +26,16 @@ public class ConnectionSettingsChangedReceiver extends BroadcastReceiver {
         if (intent != null && intent.getExtras() != null) {
             Log.d(TAG, "Intent looks ok");
             Bundle bundle = intent.getExtras();
-            for (String curKey : bundle.keySet()) {
-                Log.d(TAG, "Intent has key " + curKey + " with value " + bundle.getString(curKey));
-            }
             for (PushService curService : TeamManagement.getInstance().getActivePushServices()) {
                 try {
-                    Connection connection = Connection.createFromSharedPreference(curService, true);
+                    Connection connection = Connection.createFromBundle(curService, bundle, true);
                     Intent serviceIntent = new Intent(context, ConnectionService.class);
                     serviceIntent.putExtra(ConnectionService.KEY_CONNECTION, connection);
+                    context.startService(serviceIntent);
                 } catch (PackageManager.NameNotFoundException e) {
-                    e.printStackTrace();
+                    Log.e(TAG, Log.getStackTraceString(e));
                 } catch (ConnectionService.ProtocolNotSupportedException e) {
-                    e.printStackTrace();
+                    Log.e(TAG, Log.getStackTraceString(e));
                 }
             }
         }

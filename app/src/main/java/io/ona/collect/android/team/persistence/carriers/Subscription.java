@@ -17,8 +17,8 @@ import io.ona.collect.android.team.pushes.services.PushService;
  */
 
 public class Subscription implements Serializable {
-    private static final String FORM_SCHEMA_UPDATES_TOPIC_FORMAT = "forms/%s/schema";
-    private static final String FORM_MESSAGE_TOPIC_FORMAT = "forms/%s/messages";
+    private static final String FORM_SCHEMA_UPDATES_TOPIC_FORMAT = "forms/%s/schema/updated";
+    private static final String FORM_MESSAGE_TOPIC_FORMAT = "forms/%s/message/published";
     public static final long DEFAULT_ID = -1;
     public static final int DEFAULT_QOS = -1;
     public final long id;

@@ -8,6 +8,7 @@ import android.os.Build;
 import android.provider.Settings;
 import android.support.annotation.RequiresApi;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
 
@@ -16,10 +17,11 @@ import java.util.List;
 
 import io.ona.collect.android.team.application.TeamManagement;
 import io.ona.collect.android.team.persistence.carriers.Connection;
+import io.ona.collect.android.team.persistence.carriers.Message;
 import io.ona.collect.android.team.persistence.carriers.Subscription;
 import io.ona.collect.android.team.persistence.sqlite.databases.tables.ConnectionTable;
+import io.ona.collect.android.team.persistence.sqlite.databases.tables.MessageTable;
 import io.ona.collect.android.team.persistence.sqlite.databases.tables.SubscriptionTable;
-import io.ona.collect.android.team.pushes.messages.types.PushMessage;
 
 /**
  * Created by Jason Rogena - jrogena@ona.io on 04/08/2017.
@@ -183,6 +185,18 @@ public abstract class PushService implements Serializable {
         return true;
     }
 
+    protected void saveMessage(Message message) {
+        try {
+            MessageTable mt = (MessageTable) TeamManagement.getInstance()
+                    .getTeamManagementDatabase().getTable(MessageTable.TABLE_NAME);
+            mt.addMessage(message);
+        } catch (PushSystemNotFoundException e) {
+            Log.e(TAG, Log.getStackTraceString(e));
+        } catch (SQLiteException e) {
+            Log.e(TAG, Log.getStackTraceString(e));
+        }
+    }
+
     public interface ConnectionListener extends Serializable {
         void onConnected(Connection connection, boolean status, boolean wasReconnection);
 
@@ -192,9 +206,9 @@ public abstract class PushService implements Serializable {
     }
 
     public interface MessageListener extends Serializable {
-        void onMessageReceived(PushMessage message);
+        void onMessageReceived(Message message);
 
-        void onMessageSent(PushMessage message);
+        void onMessageSent(Message message);
     }
 
     public static class PushSystemNotFoundException extends Exception {

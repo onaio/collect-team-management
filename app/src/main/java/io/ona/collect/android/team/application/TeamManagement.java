@@ -4,15 +4,13 @@ import android.Manifest;
 import android.app.Application;
 import android.os.Environment;
 
-import org.eclipse.paho.android.service.MqttAndroidClient;
-
 import java.io.File;
 import java.util.ArrayList;
 
 import io.ona.collect.android.team.R;
 import io.ona.collect.android.team.persistence.resolvers.OdkFormsContentResolver;
 import io.ona.collect.android.team.persistence.sqlite.databases.TeamManagementDbWrapper;
-import io.ona.collect.android.team.pushes.messages.handlers.MessageHandler;
+import io.ona.collect.android.team.pushes.messages.handlers.PushServiceManager;
 import io.ona.collect.android.team.pushes.services.MqttPushService;
 import io.ona.collect.android.team.pushes.services.PushService;
 import io.ona.collect.android.team.services.StartupService;
@@ -29,7 +27,7 @@ public class TeamManagement extends Application {
     private TeamManagementDbWrapper teamManagementDatabase;
     private OdkFormsContentResolver odkFormsContentResolver;
     private static TeamManagement instance;
-    private MessageHandler messageHandler;
+    private PushServiceManager pushServiceManager;
     private ArrayList<PushService> activePushServices;
 
     public static TeamManagement getInstance() {
@@ -59,9 +57,9 @@ public class TeamManagement extends Application {
     }
 
     private void preparePushSystems() {
-        messageHandler = new MessageHandler();
+        pushServiceManager = new PushServiceManager();
         activePushServices = new ArrayList<>();
-        activePushServices.add(new MqttPushService(messageHandler, messageHandler));
+        activePushServices.add(new MqttPushService(pushServiceManager, pushServiceManager));
     }
 
     @Override
@@ -90,8 +88,8 @@ public class TeamManagement extends Application {
         return odkFormsContentResolver;
     }
 
-    public MessageHandler getMessageHandler() {
-        return messageHandler;
+    public PushServiceManager getPushServiceManager() {
+        return pushServiceManager;
     }
 
     public ArrayList<PushService> getActivePushServices() {

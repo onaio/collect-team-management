@@ -7,12 +7,12 @@ import org.eclipse.paho.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.MqttSecurityException;
+import org.json.JSONException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -22,6 +22,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.Calendar;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -30,8 +31,8 @@ import javax.net.ssl.TrustManagerFactory;
 
 import io.ona.collect.android.team.application.TeamManagement;
 import io.ona.collect.android.team.persistence.carriers.Connection;
+import io.ona.collect.android.team.persistence.carriers.Message;
 import io.ona.collect.android.team.persistence.carriers.Subscription;
-import io.ona.collect.android.team.pushes.messages.types.PushMessage;
 
 /**
  * Created by Jason Rogena - jrogena@ona.io on 04/08/2017.
@@ -50,6 +51,7 @@ public class MqttPushService extends PushService {
     private static final String APP_KEYSTORE_FILE = "team.android.collect.ona.io.bks";
     private static final String APP_KEYSTORE_PASSWORD = "bU3mVNhcMHn8RwJBsKEdMBbpN";
     private static MqttAndroidClient mqttAndroidClient;
+    private Connection currentConnection;
 
     public MqttPushService(ConnectionListener connectionListener,
                            MessageListener messageListener) {
@@ -88,7 +90,7 @@ public class MqttPushService extends PushService {
 
                     @Override
                     public void messageArrived(String topic, MqttMessage message) throws Exception {
-                        messageListener.onMessageReceived(getPushMessage(topic, message));
+                        messageListener.onMessageReceived(extractMessage(topic, message, false));
                     }
 
                     @Override
@@ -97,8 +99,16 @@ public class MqttPushService extends PushService {
                             if (token != null) {
                                 String[] topics = token.getTopics();
                                 for (int i = 0; i < topics.length; i++) {
-                                    messageListener.onMessageSent(
-                                            getPushMessage(topics[i], token.getMessage()));
+                                    try {
+                                        messageListener.onMessageSent(
+                                                extractMessage(topics[i], token.getMessage(), true));
+                                    } catch (JSONException e) {
+                                        Log.e(TAG, Log.getStackTraceString(e));
+                                    } catch (IllegalArgumentException e) {
+                                        Log.e(TAG, Log.getStackTraceString(e));
+                                    } catch (UnsupportedOperationException e) {
+                                        Log.e(TAG, Log.getStackTraceString(e));
+                                    }
                                 }
                             }
                         } catch (MqttException e) {
@@ -120,38 +130,8 @@ public class MqttPushService extends PushService {
                         connectionListener.onConnected(connection, false, false);
                     }
                 });
-
-                //final IMqttToken token = mqttAndroidClient.connect(options);
-                Log.d(TAG, "Post connect code");
-
-                /*mqttAndroidClient.setCallback(new MqttCallback() {
-                    @Override
-                    public void connectionLost(Throwable cause) {
-                        Log.w(TAG, "Connection to broker lost");
-                        connectionListener.onConnectionLost(connection, cause);
-                    }
-
-                    @Override
-                    public void messageArrived(String topic, MqttMessage message) throws Exception {
-                        messageListener.onMessageReceived(getPushMessage(topic, message));
-                    }
-
-                    @Override
-                    public void deliveryComplete(IMqttDeliveryToken token) {
-                        try {
-                            if (token != null) {
-                                String[] topics = token.getTopics();
-                                for (int i = 0; i < topics.length; i++) {
-                                    messageListener.onMessageSent(
-                                            getPushMessage(topics[i], token.getMessage()));
-                                }
-                            }
-                        } catch (MqttException e) {
-                            Log.e(TAG, Log.getStackTraceString(e));
-                        }
-                    }
-                });*/
-
+                Log.d(TAG, "Waiting for client to finish connecting to broker");
+                currentConnection = connection;
                 return true;
             } catch (Exception e) {
                 disconnect(connection, true);
@@ -162,15 +142,14 @@ public class MqttPushService extends PushService {
         return false;
     }
 
-    private PushMessage getPushMessage(String topic, MqttMessage message) {
-        String payload = null;
-        String systemMessageId = null;
-        if (message != null) {
-            payload = new String(message.getPayload());
-            systemMessageId = String.valueOf(message.getId());
-        }
-
-        return new PushMessage(topic, payload, systemMessageId);
+    private Message extractMessage(String topic, MqttMessage mqttMessage, boolean sentByApp)
+            throws JSONException, IllegalArgumentException, UnsupportedOperationException {
+        Subscription subscription =
+                new Subscription(currentConnection, topic, Subscription.DEFAULT_QOS, true);
+        Message message = new Message(
+                subscription, mqttMessage, sentByApp, false, Calendar.getInstance().getTime());
+        saveMessage(message);
+        return message;
     }
 
     private SSLSocketFactory getSocketFactory() throws Exception {
@@ -224,6 +203,7 @@ public class MqttPushService extends PushService {
             try {
                 mqttAndroidClient.disconnect();
                 mqttAndroidClient = null;
+                currentConnection = null;
 
                 return true;
             } catch (MqttException e) {

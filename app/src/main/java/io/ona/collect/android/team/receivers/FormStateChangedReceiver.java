@@ -60,6 +60,7 @@ public class FormStateChangedReceiver extends BroadcastReceiver {
                 if (subscriptions != null && subscriptions.size() > 0) {
                     Intent serviceIntent = new Intent(context, SubscriptionService.class);
                     serviceIntent.putExtra(SubscriptionService.KEY_SUBSCRIPTIONS, subscriptions);
+                    context.startService(serviceIntent);
                 }
             } catch (OdkForm.MalformedObjectException e) {
                 e.printStackTrace();

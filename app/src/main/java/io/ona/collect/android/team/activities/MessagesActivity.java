@@ -1,8 +1,6 @@
 package io.ona.collect.android.team.activities;
 
-import android.Manifest;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -10,7 +8,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import io.ona.collect.android.team.R;

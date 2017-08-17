@@ -25,7 +25,7 @@ public class ConnectionTable extends Table {
     private static final String TAG = ConnectionTable.class.getSimpleName();
     public static final String TABLE_NAME = "connection";
     private static final String COLUMN_ID = "_id";
-    private static final String COLUMN_SYSTEM = "system";
+    private static final String COLUMN_SERVICE = "service";
     private static final String COLUMN_SERVER = "server";
     private static final String COLUMN_PORT = "port";
     private static final String COLUMN_STATUS = "status";
@@ -38,7 +38,7 @@ public class ConnectionTable extends Table {
     private static final String QUERY_CREATE_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME +
             "(" +
             COLUMN_ID + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT," +
-            COLUMN_SYSTEM + " VARCHAR NOT NULL," +
+            COLUMN_SERVICE + " VARCHAR NOT NULL," +
             COLUMN_SERVER + " VARCHAR NOT NULL," +
             COLUMN_PORT + " INTEGER NOT NULL," +
             COLUMN_USERNAME + " VARCHAR NOT NULL," +
@@ -48,10 +48,10 @@ public class ConnectionTable extends Table {
             COLUMN_UPDATED_AT + " TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP" +
             ")";
     private static final String INDEX_SYSTEM_SERVER = "CREATE UNIQUE INDEX " +
-            TABLE_NAME + "_" + COLUMN_SYSTEM + "_" + COLUMN_SERVER + "_index" +
+            TABLE_NAME + "_" + COLUMN_SERVICE + "_" + COLUMN_SERVER + "_index" +
             " ON " + TABLE_NAME +
             "("
-            + COLUMN_SYSTEM + ","
+            + COLUMN_SERVICE + ","
             + COLUMN_SERVER + ","
             + COLUMN_PORT + ","
             + COLUMN_USERNAME + ","
@@ -84,7 +84,7 @@ public class ConnectionTable extends Table {
             db.beginTransaction();
 
             ContentValues cv = new ContentValues();
-            cv.put(COLUMN_SYSTEM, connection.pushService.getName());
+            cv.put(COLUMN_SERVICE, connection.pushService.getName());
             cv.put(COLUMN_SERVER, connection.server);
             cv.put(COLUMN_PORT, connection.port);
             cv.put(COLUMN_USERNAME, connection.username);
@@ -124,7 +124,7 @@ public class ConnectionTable extends Table {
         try {
             cursor = dbWrapper.getReadableDatabase().query(
                     TABLE_NAME, null,
-                    COLUMN_SYSTEM + " = ? and " +
+                    COLUMN_SERVICE + " = ? and " +
                             COLUMN_SERVER + " = ? and " +
                             COLUMN_PORT + " = ? and " +
                             COLUMN_USERNAME + " = ? and " +
@@ -225,7 +225,7 @@ public class ConnectionTable extends Table {
         Cursor cursor = null;
         try {
             cursor = dbWrapper.getReadableDatabase().query(TABLE_NAME, null,
-                    COLUMN_STATUS + " = ? and " + COLUMN_SYSTEM + " = ?",
+                    COLUMN_STATUS + " = ? and " + COLUMN_SERVICE + " = ?",
                     new String[]{String.valueOf(STATUS_ACTIVE), system.getName()},
                     null, null, null);
             if (cursor != null && cursor.getCount() > 0) {
@@ -247,7 +247,7 @@ public class ConnectionTable extends Table {
             throws PushService.PushSystemNotFoundException {
         return new Connection(
                 cursor.getInt(cursor.getColumnIndex(COLUMN_ID)),
-                cursor.getString(cursor.getColumnIndex(COLUMN_SYSTEM)),
+                cursor.getString(cursor.getColumnIndex(COLUMN_SERVICE)),
                 cursor.getString(cursor.getColumnIndex(COLUMN_SERVER)),
                 cursor.getInt(cursor.getColumnIndex(COLUMN_PORT)),
                 cursor.getString(cursor.getColumnIndex(COLUMN_USERNAME)),

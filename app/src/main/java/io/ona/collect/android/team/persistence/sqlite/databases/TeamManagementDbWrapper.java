@@ -10,6 +10,7 @@ import java.util.HashMap;
 
 import io.ona.collect.android.team.application.TeamManagement;
 import io.ona.collect.android.team.persistence.sqlite.databases.tables.ConnectionTable;
+import io.ona.collect.android.team.persistence.sqlite.databases.tables.MessageTable;
 import io.ona.collect.android.team.persistence.sqlite.databases.tables.SubscriptionTable;
 import io.ona.collect.android.team.persistence.sqlite.databases.tables.Table;
 
@@ -26,12 +27,14 @@ public class TeamManagementDbWrapper extends DbWrapper {
         super(application, DATABASE_PATH, DATABASE_NAME, null, DATABASE_VERSION);
         tables.put(ConnectionTable.TABLE_NAME, new ConnectionTable(this));
         tables.put(SubscriptionTable.TABLE_NAME, new SubscriptionTable(this));
+        tables.put(MessageTable.TABLE_NAME, new MessageTable(this));
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
         tables.get(ConnectionTable.TABLE_NAME).createTable(db);
         tables.get(SubscriptionTable.TABLE_NAME).createTable(db);
+        tables.get(MessageTable.TABLE_NAME).createTable(db);
     }
 
     @Override

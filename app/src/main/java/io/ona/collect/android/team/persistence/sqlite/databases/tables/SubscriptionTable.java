@@ -9,6 +9,7 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 import io.ona.collect.android.team.application.TeamManagement;
@@ -150,6 +151,37 @@ public class SubscriptionTable extends Table {
         }
     }
 
+    public HashMap<Long, Subscription> getAllSubscriptions()
+            throws PushService.PushSystemNotFoundException {
+        ConnectionTable ct = (ConnectionTable) TeamManagement.getInstance()
+                .getTeamManagementDatabase().getTable(ConnectionTable.TABLE_NAME);
+        HashMap<Long, Connection> connections = ct.getAllConnections();
+
+        Cursor cursor = null;
+        HashMap<Long, Subscription> subscriptions = new HashMap<>();
+        try {
+            cursor = dbWrapper.getReadableDatabase().query(
+                    TABLE_NAME, null, null, null, null, null, null);
+            if (cursor != null && cursor.getCount() > 0) {
+                for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
+                    long curConnectionId = cursor.getLong(
+                            cursor.getColumnIndex(COLUMN_CONNECTION_ID));
+                    if (connections.containsKey(curConnectionId)) {
+                        Subscription curSubscription =
+                                extractSubscription(cursor, connections.get(curConnectionId));
+                        subscriptions.put(curSubscription.id, curSubscription);
+                    }
+                }
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+
+        return subscriptions;
+    }
+
     public Subscription getSubscriptionWithDetails(Connection connection, String topic)
             throws PushService.PushSystemNotFoundException, SQLiteException {
         if (connection.id == Connection.DEFAULT_ID) {
@@ -247,7 +279,7 @@ public class SubscriptionTable extends Table {
 
     private Subscription extractSubscription(Cursor cursor, Connection connection) {
         return new Subscription(
-                cursor.getInt(cursor.getColumnIndex(COLUMN_ID)),
+                cursor.getLong(cursor.getColumnIndex(COLUMN_ID)),
                 connection,
                 cursor.getString(cursor.getColumnIndex(COLUMN_TOPIC)),
                 cursor.getInt(cursor.getColumnIndex(COLUMN_QOS)),

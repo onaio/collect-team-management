@@ -1,5 +1,7 @@
 package io.ona.collect.android.team.persistence.carriers;
 
+import android.util.Log;
+
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
@@ -7,13 +9,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.Serializable;
+import java.util.Comparator;
 import java.util.Date;
 
 /**
  * Created by Jason Rogena - jrogena@ona.io on 17/08/2017.
  */
 
-public class Message implements Serializable {
+public class Message implements Serializable, Comparable<Message> {
     private static final DateTimeFormatter TIME_FORMATTER = ISODateTimeFormat.dateTime();
     private static final String KEY_UUID = "uuid";
     private static final String KEY_TIME = "time";
@@ -40,22 +43,36 @@ public class Message implements Serializable {
         this.receivedAt = receivedAt;
     }
 
+    public Message(long id, Subscription subscription, String message, boolean sentByApp, boolean read,
+                   Date receivedAt)
+            throws JSONException, IllegalArgumentException, UnsupportedOperationException {
+        this(
+                id,
+                subscription,
+                extractUuid(message),
+                extractPayload(message),
+                sentByApp,
+                read,
+                extractSentAt(message),
+                receivedAt
+        );
+    }
+
     public Message(Subscription subscription, MqttMessage message, boolean sentByApp, boolean read,
                    Date receivedAt)
             throws JSONException, IllegalArgumentException, UnsupportedOperationException {
         this(
                 DEFAULT_ID,
                 subscription,
-                extractUuid(new String(message.getPayload())),
-                extractPayload(new String(message.getPayload())),
+                new String(message.getPayload()),
                 sentByApp,
                 read,
-                extractSentAt(new String(message.getPayload())),
                 receivedAt
         );
     }
 
     private static String extractUuid(String data) throws JSONException {
+        Log.d("collect", "Message is " + data);
         return new JSONObject(data).getString(KEY_UUID);
     }
 
@@ -66,5 +83,18 @@ public class Message implements Serializable {
 
     private static JSONObject extractPayload(String data) throws JSONException {
         return new JSONObject(data).getJSONObject(KEY_PAYLOAD);
+    }
+
+    @Override
+    public int compareTo(Message message) {
+        return (int) (id - message.id);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Message) {
+            return uuid.equals(((Message) obj).uuid);
+        }
+        return false;
     }
 }

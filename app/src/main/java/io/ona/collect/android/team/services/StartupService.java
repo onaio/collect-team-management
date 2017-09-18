@@ -51,9 +51,11 @@ public class StartupService extends IntentService {
             switch (activeConnections.size()) {
                 case 0:
                     // No connections yet, request Collect to send current connection settings
+                    Log.d(TAG, "No connections yet. Requesting credentials from ODK");
                     OdkConnSettingsRequestBroadcast.sendBroadcast(this);
                     break;
                 case 1:
+                    Log.d(TAG, "Starting existing connection");
                     startConnection(activeConnections.get(0));
                     break;
                 default:

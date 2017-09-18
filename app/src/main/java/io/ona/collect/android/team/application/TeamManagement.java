@@ -59,7 +59,7 @@ public class TeamManagement extends Application {
     private void preparePushSystems() {
         pushServiceManager = new PushServiceManager();
         activePushServices = new ArrayList<>();
-        activePushServices.add(new MqttPushService(pushServiceManager, pushServiceManager));
+        activePushServices.add(new MqttPushService());
     }
 
     @Override

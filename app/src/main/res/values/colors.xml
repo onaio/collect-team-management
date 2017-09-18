@@ -1,6 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#0a9268</color> 
-    <color name="colorPrimaryDark">#0a9268</color>
+    <color name="colorPrimary">#157DF4</color> 
+    <color name="colorPrimaryDark">#1161bc</color>
     <color name="colorAccent">#F2572C</color>
+    <color name="colorSecondaryText">#979797</color>
+    <color name="colorLink">#4888f4</color>
+    <color name="colorSeparator">#dcdcdc</color>
+    <array name="avatarColors">
+        <item name="red" type="color">#dd191d</item>
+        <item name="pink" type="color">#d81b60</item>
+        <item name="purple" type="color">#8e24aa</item>
+        <item name="deep_purple" type="color">#5e35b1</item>
+        <item name="indigo" type="color">#3949ab</item>
+        <item name="blue" type="color">#4e6cef</item>
+        <item name="light_blue" type="color">#039be5</item>
+        <item name="cyan" type="color">#00acc1</item>
+        <item name="teal" type="color">#00897b</item>
+        <item name="green" type="color">#0a8f08</item>
+        <item name="light_green" type="color">#7cb342</item>
+        <item name="lime" type="color">#c0ca33</item>
+        <item name="yellow" type="color">#fdd835</item>
+        <item name="orange" type="color">#fb8c00</item>
+        <item name="deep_orange" type="color">#f4511e</item>
+        <item name="brown" type="color">#6d4c41</item>
+        <item name="grey" type="color">#757575</item>
+        <item name="blue_grey" type="color">#546e7a</item>
+    </array>
 </resources>

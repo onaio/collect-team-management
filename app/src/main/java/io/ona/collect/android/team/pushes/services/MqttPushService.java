@@ -53,9 +53,8 @@ public class MqttPushService extends PushService {
     private static MqttAndroidClient mqttAndroidClient;
     private Connection currentConnection;
 
-    public MqttPushService(ConnectionListener connectionListener,
-                           MessageListener messageListener) {
-        super(NAME, connectionListener, messageListener);
+    public MqttPushService() {
+        super(NAME);
     }
 
     @Override
@@ -79,18 +78,18 @@ public class MqttPushService extends PushService {
                     @Override
                     public void connectComplete(boolean reconnect, String serverURI) {
                         Log.d(TAG, "Was successfully able to connect to MQTT broker");
-                        connectionListener.onConnected(connection, true, reconnect);
+                        TeamManagement.getInstance().getPushServiceManager().onConnected(connection, true, reconnect);
                     }
 
                     @Override
                     public void connectionLost(Throwable cause) {
                         Log.w(TAG, "Connection to broker lost");
-                        connectionListener.onConnectionLost(connection, cause);
+                        TeamManagement.getInstance().getPushServiceManager().onConnectionLost(connection, cause);
                     }
 
                     @Override
                     public void messageArrived(String topic, MqttMessage message) throws Exception {
-                        messageListener.onMessageReceived(extractMessage(topic, message, false));
+                        TeamManagement.getInstance().getPushServiceManager().onMessageReceived(extractMessage(topic, message, false));
                     }
 
                     @Override
@@ -100,7 +99,7 @@ public class MqttPushService extends PushService {
                                 String[] topics = token.getTopics();
                                 for (int i = 0; i < topics.length; i++) {
                                     try {
-                                        messageListener.onMessageSent(
+                                        TeamManagement.getInstance().getPushServiceManager().onMessageSent(
                                                 extractMessage(topics[i], token.getMessage(), true));
                                     } catch (JSONException e) {
                                         Log.e(TAG, Log.getStackTraceString(e));
@@ -127,7 +126,7 @@ public class MqttPushService extends PushService {
                         exception.printStackTrace();
                         Log.w(TAG, "Unable to connect to the MQTT broker because of " +
                                 exception.getMessage());
-                        connectionListener.onConnected(connection, false, false);
+                        TeamManagement.getInstance().getPushServiceManager().onConnected(connection, false, false);
                     }
                 });
                 Log.d(TAG, "Waiting for client to finish connecting to broker");

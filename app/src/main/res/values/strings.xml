@@ -4,4 +4,7 @@
     <string name="sdcard_unmounted">Cannot access the SD card. Perhaps it is mounted via USB? (Current state: %s)</string>
     <string name="default_mqtt_server">tcp://35.195.88.128</string>
     <string name="default_mqtt_port">1883</string>
+    <string name="open_form">Open form</string>
+    <string name="update_form">Update form</string>
+    <string name="default_author">System</string>
 </resources>

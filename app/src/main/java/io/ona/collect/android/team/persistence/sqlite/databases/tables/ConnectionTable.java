@@ -9,6 +9,7 @@ import android.text.TextUtils;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 import io.ona.collect.android.team.persistence.carriers.Connection;
@@ -217,6 +218,27 @@ public class ConnectionTable extends Table {
                 cv,
                 COLUMN_ID + " in(" + selectionArgs + ")",
                 selections.toArray(new String[0]));
+    }
+
+    public HashMap<Long, Connection> getAllConnections() throws PushService.PushSystemNotFoundException {
+        Cursor cursor = null;
+        HashMap<Long, Connection> connections = new HashMap<>();
+        try {
+            cursor = dbWrapper.getReadableDatabase().query(TABLE_NAME,
+                    null, null, null, null, null, null);
+            if (cursor != null && cursor.getCount() > 0) {
+                for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
+                    Connection curConnection = extractConnection(cursor);
+                    connections.put(curConnection.id, curConnection);
+                }
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+
+        return connections;
     }
 
     public List<Connection> getAllActiveConnections(PushService system)

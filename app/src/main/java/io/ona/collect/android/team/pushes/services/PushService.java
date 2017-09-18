@@ -31,14 +31,9 @@ public abstract class PushService implements Serializable {
     private static final String TAG = PushService.class.getSimpleName();
     private static final String ANDROID6_FAKE_MAC = "02:00:00:00:00:00";
     protected final String name;
-    protected final ConnectionListener connectionListener;
-    protected final MessageListener messageListener;
 
-    protected PushService(String name, ConnectionListener connectionListener,
-                          MessageListener messageListener) {
+    protected PushService(String name) {
         this.name = name;
-        this.connectionListener = connectionListener;
-        this.messageListener = messageListener;
     }
 
     public String getName() {

@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.ona.collect.android.team.pushes.services.MqttPushService;
 import io.ona.collect.android.team.pushes.services.PushService;
@@ -18,7 +20,11 @@ import io.ona.collect.android.team.pushes.services.PushService;
 
 public class Subscription implements Serializable {
     private static final String FORM_SCHEMA_UPDATES_TOPIC_FORMAT = "forms/%s/schema/updated";
+    private static final Pattern FORM_SCHEMA_UPDATES_TOPIC_PATTERN =
+            Pattern.compile("forms/\\w+/schema/updated");
     private static final String FORM_MESSAGE_TOPIC_FORMAT = "forms/%s/message/published";
+    private static final Pattern FORM_MESSAGE_TOPIC_PATTERN =
+            Pattern.compile("forms/\\w+/message/published");
     public static final long DEFAULT_ID = -1;
     public static final int DEFAULT_QOS = -1;
     public final long id;
@@ -82,5 +88,10 @@ public class Subscription implements Serializable {
         }
 
         return subscriptions;
+    }
+
+    public static boolean isFormSchemaUpdateSubscription(Subscription subscription) {
+        Matcher matcher = FORM_SCHEMA_UPDATES_TOPIC_PATTERN.matcher(subscription.topic);
+        return matcher.find();
     }
 }

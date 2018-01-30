@@ -1,6 +1,5 @@
 package io.ona.collect.android.team.application;
 
-import android.Manifest;
 import android.app.Application;
 import android.os.Environment;
 
@@ -10,6 +9,7 @@ import java.util.ArrayList;
 import io.ona.collect.android.team.R;
 import io.ona.collect.android.team.persistence.resolvers.OdkFormsContentResolver;
 import io.ona.collect.android.team.persistence.sqlite.databases.TeamManagementDbWrapper;
+import io.ona.collect.android.team.persistence.sqlite.databases.TeamManagementVirtualDatabase;
 import io.ona.collect.android.team.pushes.messages.handlers.PushServiceManager;
 import io.ona.collect.android.team.pushes.services.MqttPushService;
 import io.ona.collect.android.team.pushes.services.PushService;
@@ -25,6 +25,7 @@ public class TeamManagement extends Application {
     public static final String ODK_ROOT = Environment.getExternalStorageDirectory()
             + File.separator + "odk";
     private TeamManagementDbWrapper teamManagementDatabase;
+    private TeamManagementVirtualDatabase teamManagementVirtualDatabase;
     private OdkFormsContentResolver odkFormsContentResolver;
     private static TeamManagement instance;
     private PushServiceManager pushServiceManager;
@@ -45,6 +46,7 @@ public class TeamManagement extends Application {
         if (Permissions.getUnauthorizedCriticalPermissions(this).size() == 0) {
             prepareDatabases();
             preparePushSystems();
+            prepareVirtualDatabases();
             if (teamManagementDatabase != null) {
                 StartupService.start(this);
             }
@@ -54,6 +56,10 @@ public class TeamManagement extends Application {
     private void prepareDatabases() {
         createODKDirs();
         getTeamManagementDatabase();
+    }
+
+    private void prepareVirtualDatabases() {
+        getTeamManagementVirtualDatabase();
     }
 
     private void preparePushSystems() {
@@ -71,13 +77,23 @@ public class TeamManagement extends Application {
     }
 
     public TeamManagementDbWrapper getTeamManagementDatabase() {
-        if (teamManagementDatabase == null && Permissions.check(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+        if (teamManagementDatabase == null
+                && Permissions.getUnauthorizedCriticalPermissions(this).size() == 0) {
             teamManagementDatabase = new TeamManagementDbWrapper(this);
             teamManagementDatabase.getWritableDatabase();
         }
 
         return teamManagementDatabase;
+    }
+
+    public TeamManagementVirtualDatabase getTeamManagementVirtualDatabase() {
+        if (teamManagementVirtualDatabase == null
+                && Permissions.getUnauthorizedCriticalPermissions(this).size() == 0) {
+            teamManagementVirtualDatabase = new TeamManagementVirtualDatabase(this);
+            teamManagementVirtualDatabase.getWritableDatabase();
+        }
+
+        return teamManagementVirtualDatabase;
     }
 
     public OdkFormsContentResolver getOdkFormsContentResolver() {

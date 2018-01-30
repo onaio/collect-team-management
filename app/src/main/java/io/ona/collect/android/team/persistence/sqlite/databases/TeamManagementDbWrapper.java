@@ -32,9 +32,9 @@ public class TeamManagementDbWrapper extends DbWrapper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        tables.get(ConnectionTable.TABLE_NAME).createTable(db);
-        tables.get(SubscriptionTable.TABLE_NAME).createTable(db);
-        tables.get(MessageTable.TABLE_NAME).createTable(db);
+        for (Table curTable : tables.values()) {
+            curTable.createTable(db);
+        }
     }
 
     @Override

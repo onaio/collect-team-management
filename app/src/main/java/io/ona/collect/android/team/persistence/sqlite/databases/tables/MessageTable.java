@@ -131,6 +131,11 @@ public class MessageTable extends Table {
         }
     }
 
+    public List<Message> getMessages()
+            throws JSONException, PushService.PushSystemNotFoundException {
+        return getMessages(-1);
+    }
+
     public List<Message> getMessages(int count)
             throws PushService.PushSystemNotFoundException, JSONException {
         return getMessages(-1, count);
@@ -150,8 +155,13 @@ public class MessageTable extends Table {
             SubscriptionTable st = (SubscriptionTable) TeamManagement.getInstance()
                     .getTeamManagementDatabase().getTable(SubscriptionTable.TABLE_NAME);
             HashMap<Long, Subscription> subscriptions = st.getAllSubscriptions();
-            cursor = dbWrapper.getReadableDatabase().query(TABLE_NAME, null, selection,
-                    selectionArgs, null, null, COLUMN_ID + " desc", String.valueOf(count));
+            if (count >= 0) {
+                cursor = dbWrapper.getReadableDatabase().query(TABLE_NAME, null, selection,
+                        selectionArgs, null, null, COLUMN_ID + " desc", String.valueOf(count));
+            } else {
+                cursor = dbWrapper.getReadableDatabase().query(TABLE_NAME, null, selection,
+                        selectionArgs, null, null, COLUMN_ID + " desc");
+            }
             if (cursor != null && cursor.getCount() > 0) {
                 for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
                     long curSubscriptionId = cursor.getLong(

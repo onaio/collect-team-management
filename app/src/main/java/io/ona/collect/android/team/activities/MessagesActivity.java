@@ -1,5 +1,7 @@
 package io.ona.collect.android.team.activities;
 
+import android.app.SearchManager;
+import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -8,19 +10,25 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.widget.Toast;
 
 import org.json.JSONException;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import io.ona.collect.android.team.R;
 import io.ona.collect.android.team.application.TeamManagement;
 import io.ona.collect.android.team.persistence.carriers.Message;
 import io.ona.collect.android.team.persistence.sqlite.databases.tables.MessageTable;
+import io.ona.collect.android.team.persistence.sqlite.databases.tables.MessageVirtualTable;
 import io.ona.collect.android.team.pushes.services.PushService;
 import io.ona.collect.android.team.ui.adapters.MessageAdapter;
 import io.ona.collect.android.team.utils.Permissions;
@@ -32,11 +40,14 @@ public class MessagesActivity extends AppCompatActivity implements PushService.M
     private RecyclerView messagesRecyclerView;
     private RecyclerView.LayoutManager recyclerLayoutManager;
     private MessageAdapter messageAdapter;
+    private List<Message> allMessages;
+    private String searchQuery;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_messages);
+        searchQuery = null;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 && !Permissions.checkCanDrawOverlay(this)) {
@@ -45,6 +56,46 @@ public class MessagesActivity extends AppCompatActivity implements PushService.M
             requestCriticalPermissions();
         }
         initViews();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        searchQuery = intent.getStringExtra(SearchManager.QUERY);
+
+        updateMessageListWithFilter();
+    }
+
+
+    private void updateMessageListWithFilter() {
+        if (TextUtils.isEmpty(searchQuery)) {
+            messageAdapter.update(allMessages);
+        } else {
+            new SearchTask(searchQuery).execute();
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.activity_messages, menu);
+
+        // Get the SearchView and set the searchable configuration
+        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        SearchView searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
+        // Assumes current activity is the searchable activity
+        searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
+        searchView.setIconifiedByDefault(true); // Do not iconify the widget; expand it by default
+        searchView.setOnCloseListener(new SearchView.OnCloseListener() {
+            @Override
+            public boolean onClose() {
+                searchQuery = null;
+                updateMessageListWithFilter();
+                return false;
+            }
+        });
+
+        return true;
     }
 
     @Override
@@ -160,11 +211,54 @@ public class MessagesActivity extends AppCompatActivity implements PushService.M
 
             if (messages != null) {
                 if (initial) {
-                    messageAdapter.update(messages);
+                    allMessages = new ArrayList<>(messages);
                 } else {
-                    messageAdapter.addAll(messages);
+                    if (allMessages == null) {
+                        allMessages = new ArrayList<>();
+                    }
+
+                    allMessages.addAll(messages);
+                }
+
+                updateMessageListWithFilter();
+            }
+        }
+    }
+
+    private class SearchTask extends AsyncTask<Void, Void, List<Message>> {
+        private final String query;
+
+        public SearchTask(String query) {
+            this.query = query;
+        }
+
+        @Override
+        protected List<Message> doInBackground(Void... voids) {
+            List<Message> filteredMessages = new ArrayList<>();
+            MessageVirtualTable mvt = (MessageVirtualTable) TeamManagement.getInstance()
+                    .getTeamManagementVirtualDatabase().getTable(MessageVirtualTable.TABLE_NAME);
+            List<String> uuids = mvt.getMessageUuids(query);
+            if (uuids != null) {
+                HashMap<String, Message> messages = new HashMap<>();
+                for (Message curMessage : allMessages) {
+                    messages.put(curMessage.uuid, curMessage);
+                }
+
+                for (String curUuid : uuids) {
+                    if (messages.containsKey(curUuid)) {
+                        filteredMessages.add(messages.get(curUuid));
+                    }
                 }
             }
+
+            return filteredMessages;
+        }
+
+        @Override
+        protected void onPostExecute(List<Message> messages) {
+            super.onPostExecute(messages);
+
+            messageAdapter.update(messages);
         }
     }
 }

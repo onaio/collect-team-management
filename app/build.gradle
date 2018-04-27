@@ -26,6 +26,66 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+
+            buildConfigField "String", "MQTT_TLS_CA_KEYSTORE_PASSWORD", "\"\""
+            buildConfigField "String", "MQTT_TLS_CA_KEYSTORE_FILE", "\"ona.io.bks\""
+            buildConfigField "String", "MQTT_TLS_APP_KEYSTORE_PASSWORD", "\"\""
+            buildConfigField "String", "MQTT_TLS_APP_KEYSTORE_FILE", "\"team.android.collect.ona.io.bks\""
+
+            if (project.rootProject.file("local.properties").exists()) {
+                Properties properties = new Properties()
+                properties.load(project.rootProject.file("local.properties").newDataInputStream())
+                if (properties != null) {
+                    if (properties.containsKey("mqtt_tls_ca_keystore_password")) {
+                        buildConfigField "String", "MQTT_TLS_CA_KEYSTORE_PASSWORD", "\"" + properties["mqtt_tls_ca_keystore_password"] + "\""
+                    }
+
+                    if (properties.containsKey("mqtt_tls_ca_keystore_file")) {
+                        buildConfigField "String", "MQTT_TLS_CA_KEYSTORE_FILE", "\"" + properties["mqtt_tls_ca_keystore_file"] + "\""
+                    }
+
+                    if (properties.containsKey("mqtt_tls_app_keystore_password")) {
+                        buildConfigField "String", "MQTT_TLS_APP_KEYSTORE_PASSWORD", "\"" + properties["mqtt_tls_app_keystore_password"] + "\""
+                    }
+
+                    if (properties.containsKey("mqtt_tls_app_keystore_file")) {
+                        buildConfigField "String", "MQTT_TLS_APP_KEYSTORE_FILE", "\"" + properties["mqtt_tls_app_keystore_file"] + "\""
+                    }
+                }
+            } else {
+                println("local.properties file does not exist")
+            }
+        }
+
+        debug {
+            buildConfigField "String", "MQTT_TLS_CA_KEYSTORE_PASSWORD", "\"\""
+            buildConfigField "String", "MQTT_TLS_CA_KEYSTORE_FILE", "\"ona.io.bks\""
+            buildConfigField "String", "MQTT_TLS_APP_KEYSTORE_PASSWORD", "\"\""
+            buildConfigField "String", "MQTT_TLS_APP_KEYSTORE_FILE", "\"team.android.collect.ona.io.bks\""
+
+            if (project.rootProject.file("local.properties").exists()) {
+                Properties properties = new Properties()
+                properties.load(project.rootProject.file("local.properties").newDataInputStream())
+                if (properties != null) {
+                    if (properties.containsKey("mqtt_tls_ca_keystore_password")) {
+                        buildConfigField "String", "MQTT_TLS_CA_KEYSTORE_PASSWORD", "\"" + properties["mqtt_tls_ca_keystore_password"] + "\""
+                    }
+
+                    if (properties.containsKey("mqtt_tls_ca_keystore_file")) {
+                        buildConfigField "String", "MQTT_TLS_CA_KEYSTORE_FILE", "\"" + properties["mqtt_tls_ca_keystore_file"] + "\""
+                    }
+
+                    if (properties.containsKey("mqtt_tls_app_keystore_password")) {
+                        buildConfigField "String", "MQTT_TLS_APP_KEYSTORE_PASSWORD", "\"" + properties["mqtt_tls_app_keystore_password"] + "\""
+                    }
+
+                    if (properties.containsKey("mqtt_tls_app_keystore_file")) {
+                        buildConfigField "String", "MQTT_TLS_APP_KEYSTORE_FILE", "\"" + properties["mqtt_tls_app_keystore_file"] + "\""
+                    }
+                }
+            } else {
+                println("local.properties file does not exist")
+            }
         }
     }
     externalNativeBuild {

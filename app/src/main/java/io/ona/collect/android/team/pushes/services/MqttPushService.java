@@ -21,6 +21,7 @@ import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.Calendar;
 
@@ -29,12 +30,25 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
+import io.ona.collect.android.team.BuildConfig;
 import io.ona.collect.android.team.application.TeamManagement;
 import io.ona.collect.android.team.persistence.carriers.Connection;
 import io.ona.collect.android.team.persistence.carriers.Message;
 import io.ona.collect.android.team.persistence.carriers.Subscription;
 
 /**
+ *
+ * After creating the client key (android.collect.ona.io.key) and certificate (android.collect.ona.io.crt) using the instructions here -> https://github.com/onaio/playbooks/wiki/Creating-a-Mosquitto-Client-Certificate-and-Key
+ * Create a Bouncycastle Key Store with the pair:
+ *
+ *     openssl pkcs12 -export -inkey team.android.collect.ona.io.key -in team.android.collect.ona.io.crt -out team.android.collect.ona.io.p12 -name team.android.collect.ona.io
+ *     wget -c https://www.bouncycastle.org/download/bcprov-jdk15on-155.jar
+ *     keytool -importkeystore -srckeystore team.android.collect.ona.io.p12 -srcstorepass <long app keystore password> -srcstoretype pkcs12 -destkeystore team.android.collect.ona.io.bks -deststorepass <long app keystore password> -deststoretype bks -providerclass org.bouncycastle.jce.provider.BouncyCastleProvider -providerpath bcprov-jdk15on-155.jar
+ *
+ * You will also need to create a Bouncycastle Key Store for the Certificate Authority being used:
+ *
+ *     keytool -import -alias ona.io -file ona.io.crt -keypass <long CA keystore password> -keystore ona.io.bks -storetype BKS -storepass <long CA keystore password> -providerClass org.bouncycastle.jce.provider.BouncyCastleProvider -providerpath bcprov-jdk15on-155.jar
+ *
  * Created by Jason Rogena - jrogena@ona.io on 04/08/2017.
  */
 
@@ -46,10 +60,6 @@ public class MqttPushService extends PushService {
     public static final int QOS_EXACTLY_ONCE = 2;
     private static final int CONNECTION_TIMEOUT = 60;
     private static final int KEEP_ALIVE_INTERVAL = 60;
-    private static final String CA_KEYSTORE_FILE = "mqtt_ca.bks";
-    private static final String CA_KEYSTORE_PASSWORD = "usTjh46qEvHeWmhTVB6CXQjFb";
-    private static final String APP_KEYSTORE_FILE = "team.android.collect.ona.io.bks";
-    private static final String APP_KEYSTORE_PASSWORD = "bU3mVNhcMHn8RwJBsKEdMBbpN";
     private static MqttAndroidClient mqttAndroidClient;
     private Connection currentConnection;
 
@@ -73,7 +83,7 @@ public class MqttPushService extends PushService {
                 options.setAutomaticReconnect(true);
                 options.setConnectionTimeout(CONNECTION_TIMEOUT);
                 options.setKeepAliveInterval(KEEP_ALIVE_INTERVAL);
-                //options.setSocketFactory(getSocketFactory());
+                options.setSocketFactory(getSocketFactory());
                 mqttAndroidClient.setCallback(new MqttCallbackExtended() {
                     @Override
                     public void connectComplete(boolean reconnect, String serverURI) {
@@ -151,27 +161,28 @@ public class MqttPushService extends PushService {
         return message;
     }
 
-    private SSLSocketFactory getSocketFactory() throws Exception {
+    private SSLSocketFactory getSocketFactory()
+            throws MqttSecurityException, IOException, UnrecoverableKeyException {
         Context context = TeamManagement.getInstance();
-        InputStream caInputStream = context.getAssets().open(CA_KEYSTORE_FILE);
-        InputStream clientInputStream = context.getAssets().open(APP_KEYSTORE_FILE);
+        InputStream caInputStream = context.getAssets().open(BuildConfig.MQTT_TLS_CA_KEYSTORE_FILE);
+        InputStream clientInputStream = context.getAssets().open(BuildConfig.MQTT_TLS_APP_KEYSTORE_FILE);
         try {
             //load ca cert
             SSLContext ctx = null;
             SSLSocketFactory sslSockFactory = null;
             KeyStore caKs;
             caKs = KeyStore.getInstance("BKS");
-            caKs.load(caInputStream, CA_KEYSTORE_PASSWORD.toCharArray());
+            caKs.load(caInputStream, BuildConfig.MQTT_TLS_CA_KEYSTORE_PASSWORD.toCharArray());
             TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
             tmf.init(caKs);
 
             //load client key and cert
             KeyStore ks;
             ks = KeyStore.getInstance("BKS");
-            ks.load(clientInputStream, APP_KEYSTORE_PASSWORD.toCharArray());
+            ks.load(clientInputStream, BuildConfig.MQTT_TLS_APP_KEYSTORE_PASSWORD.toCharArray());
             KeyManagerFactory kmf = KeyManagerFactory
                     .getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(ks, APP_KEYSTORE_PASSWORD.toCharArray());
+            kmf.init(ks, BuildConfig.MQTT_TLS_APP_KEYSTORE_PASSWORD.toCharArray());
 
             ctx = SSLContext.getInstance("TLSv1");
             ctx.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);

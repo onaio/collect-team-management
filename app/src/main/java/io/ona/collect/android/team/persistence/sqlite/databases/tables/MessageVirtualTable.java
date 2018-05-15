@@ -85,10 +85,12 @@ public class MessageVirtualTable extends VirtualTable {
             values.put(COLUMN_AUTHOR_USERNAME, defaultUser);
         }
 
-        if (message.payload.has("form")
-                && message.payload.getJSONObject("form").has("formId")) {
-            String formId = message.payload.getJSONObject("form").getString("formId");
-            String name = message.payload.getJSONObject("form").getString("name");
+        if (message.payload.has("context")
+                && message.payload.getJSONObject("context").has("type")
+                && message.payload.getJSONObject("context").has("metadata")
+                && message.payload.getJSONObject("context").getString("type").equals("xform")) {
+            String formId = message.payload.getJSONObject("context").getJSONObject("metadata").getString("form_id");
+            String name = message.payload.getJSONObject("context").getJSONObject("metadata").getString("name");
             values.put(COLUMN_FORM_ID, formId);
             values.put(COLUMN_FORM_NAME, name);
         }

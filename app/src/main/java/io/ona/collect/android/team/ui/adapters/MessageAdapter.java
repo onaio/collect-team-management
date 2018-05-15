@@ -201,10 +201,12 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
                 messageTextView.setText(null);
             }
 
-            if (message.payload.has("form")
-                    && message.payload.getJSONObject("form").has("formId")) {
+            if (message.payload.has("context")
+                    && message.payload.getJSONObject("context").has("type")
+                    && message.payload.getJSONObject("context").has("metadata")
+                    && message.payload.getJSONObject("context").getString("type").equals("xform")) {
                 boolean isRelatedToSchemaUpdate = Subscription.isFormSchemaUpdateSubscription(message.subscription);
-                String formId = message.payload.getJSONObject("form").getString("formId");
+                String formId = message.payload.getJSONObject("context").getJSONObject("metadata").getString("form_id");
                 formIdTextView.setText(formId);
                 launchFormView.setClickable(true);
                 launchFormView.setTag(R.id.formId, formId);

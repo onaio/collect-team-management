@@ -9,7 +9,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.Serializable;
-import java.util.Comparator;
 import java.util.Date;
 
 /**
@@ -18,7 +17,7 @@ import java.util.Date;
 
 public class Message implements Serializable, Comparable<Message> {
     private static final DateTimeFormatter TIME_FORMATTER = ISODateTimeFormat.dateTime();
-    private static final String KEY_UUID = "uuid";
+    private static final String KEY_ID = "id";
     private static final String KEY_TIME = "time";
     private static final String KEY_PAYLOAD = "payload";
     public static final int DEFAULT_ID = -1;
@@ -49,7 +48,7 @@ public class Message implements Serializable, Comparable<Message> {
         this(
                 id,
                 subscription,
-                extractUuid(message),
+                extractId(message),
                 extractPayload(message),
                 sentByApp,
                 read,
@@ -71,9 +70,9 @@ public class Message implements Serializable, Comparable<Message> {
         );
     }
 
-    private static String extractUuid(String data) throws JSONException {
+    private static String extractId(String data) throws JSONException {
         Log.d("collect", "Message is " + data);
-        return new JSONObject(data).getString(KEY_UUID);
+        return String.valueOf(new JSONObject(data).getInt(KEY_ID));
     }
 
     private static Date extractSentAt(String data)

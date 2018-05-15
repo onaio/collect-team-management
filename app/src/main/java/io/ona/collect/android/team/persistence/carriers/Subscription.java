@@ -19,12 +19,12 @@ import io.ona.collect.android.team.pushes.services.PushService;
  */
 
 public class Subscription implements Serializable {
-    private static final String FORM_SCHEMA_UPDATES_TOPIC_FORMAT = "forms/%s/schema/updated";
+    private static final String FORM_SCHEMA_UPDATES_TOPIC_FORMAT = "/onadata/xform/%s/schema/update";
     private static final Pattern FORM_SCHEMA_UPDATES_TOPIC_PATTERN =
-            Pattern.compile("forms/\\w+/schema/updated");
-    private static final String FORM_MESSAGE_TOPIC_FORMAT = "forms/%s/message/published";
+            Pattern.compile("/onadata/xform/\\w+/schema/update");
+    private static final String FORM_MESSAGE_TOPIC_FORMAT = "/onadata/xform/%s/messages/publish";
     private static final Pattern FORM_MESSAGE_TOPIC_PATTERN =
-            Pattern.compile("forms/\\w+/message/published");
+            Pattern.compile("/onadata/xform/\\w+/messages/publish");
     public static final long DEFAULT_ID = -1;
     public static final int DEFAULT_QOS = -1;
     public final long id;
@@ -71,14 +71,14 @@ public class Subscription implements Serializable {
                 String updatesTopic =
                         String.format(FORM_SCHEMA_UPDATES_TOPIC_FORMAT, odkForm.getPkid());
                 subscriptions.add(new Subscription(
-                        connection, updatesTopic, MqttPushService.QOS_EXACTLY_ONCE,
+                        connection, updatesTopic, MqttPushService.QOS_AT_MOST_ONCE,
                         !odkForm.state.equals(OdkForm.STATE_FORM_DELETED)));
 
                 // Create subscription for free-form messages
                 String messagesTopic =
                         String.format(FORM_MESSAGE_TOPIC_FORMAT, odkForm.getPkid());
                 subscriptions.add(new Subscription(
-                        connection, messagesTopic, MqttPushService.QOS_EXACTLY_ONCE,
+                        connection, messagesTopic, MqttPushService.QOS_AT_MOST_ONCE,
                         !odkForm.state.equals(OdkForm.STATE_FORM_DELETED)));
             } else {
                 throw new PushService.PushSystemNotFoundException(

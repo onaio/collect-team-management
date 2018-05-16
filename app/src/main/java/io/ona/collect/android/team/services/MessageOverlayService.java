@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.PixelFormat;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -20,9 +21,18 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
+
+import org.json.JSONException;
+
+import java.util.List;
 
 import io.ona.collect.android.team.R;
 import io.ona.collect.android.team.activities.MessagesActivity;
+import io.ona.collect.android.team.application.TeamManagement;
+import io.ona.collect.android.team.persistence.carriers.Message;
+import io.ona.collect.android.team.persistence.sqlite.databases.tables.MessageTable;
+import io.ona.collect.android.team.pushes.services.PushService;
 
 /**
  * Created by Jason Rogena - jrogena@ona.io on 02/08/2017.
@@ -30,7 +40,7 @@ import io.ona.collect.android.team.activities.MessagesActivity;
  * - https://gist.github.com/bjoernQ/6975256
  */
 
-public class MessageOverlayService extends Service implements View.OnTouchListener {
+public class MessageOverlayService extends Service implements View.OnTouchListener, PushService.MessageListener {
     private static final String TAG = MessageOverlayService.class.getCanonicalName();
     private static final String PREFERENCE_X_POS = "message_overlay_x";
     private static final String PREFERENCE_Y_POS = "message_overlay_y";
@@ -42,6 +52,8 @@ public class MessageOverlayService extends Service implements View.OnTouchListen
     private WindowManager windowManager;
     private SharedPreferences sharedPreferences;
     private View topLeftView;
+    private Button messageOverlayButton;
+    private TextView messageOverlayText;
     private int originalXPos;
     private int originalYPos;
     private float offsetX;
@@ -75,6 +87,7 @@ public class MessageOverlayService extends Service implements View.OnTouchListen
                 createOverlayView();
             }
         }
+        TeamManagement.getInstance().getPushServiceManager().addMessageListener(this);
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -82,6 +95,7 @@ public class MessageOverlayService extends Service implements View.OnTouchListen
     public void onDestroy() {
         Log.d(TAG, "MessageOverlayService onDestroy called");
         destroyOverlayView();
+        TeamManagement.getInstance().getPushServiceManager().removeMessageListener(this);
         super.onDestroy();
     }
 
@@ -106,12 +120,14 @@ public class MessageOverlayService extends Service implements View.OnTouchListen
 
         messageOverlay =
                 (RelativeLayout) layoutInflater.inflate(R.layout.view_message_overlay, null);
-        Button messageOverlayButton =
+        messageOverlayButton =
                 (Button) messageOverlay.findViewById(R.id.messageOverlayButton);
+        messageOverlayText = (TextView) messageOverlay.findViewById(R.id.messageOverlayText) ;
         messageOverlayButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(MessageOverlayService.this, MessagesActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
                 destroyOverlayView();
             }
@@ -143,6 +159,31 @@ public class MessageOverlayService extends Service implements View.OnTouchListen
         topLeftParams.width = 0;
         topLeftParams.height = 0;
         windowManager.addView(topLeftView, topLeftParams);
+
+        new UpdateMessageViewsTask().execute();
+    }
+
+    private void updateOverlayText(List<Message> messages) {
+        if (messages != null) {
+            if (messageOverlayText != null) {
+                if (messages.size() > 0) {
+                    String messagePluralString = getResources().getString(R.string.messages);
+                    if (messages.size() == 1) {
+                        messagePluralString = getResources().getString(R.string.message);
+                    }
+                    messageOverlayText.setText(
+                            String.format(
+                                    this.getResources().getString(R.string.you_have_new_messages),
+                                    messages.size(), messagePluralString));
+                } else {
+                    messageOverlayText.setText(R.string.you_have_no_new_messages);
+                }
+            }
+
+            if (messageOverlayButton != null) {
+                messageOverlayButton.setText(String.valueOf(messages.size()));
+            }
+        }
     }
 
     private void destroyOverlayView() {
@@ -216,5 +257,43 @@ public class MessageOverlayService extends Service implements View.OnTouchListen
                 .putInt(PREFERENCE_X_POS, x)
                 .putInt(PREFERENCE_Y_POS, y)
                 .commit();
+    }
+
+    @Override
+    public void onMessageReceived(Message message) {
+        new UpdateMessageViewsTask().execute();
+    }
+
+    @Override
+    public void onMessageSent(Message message) {
+
+    }
+
+    private class UpdateMessageViewsTask extends AsyncTask<Void, Void, List<Message>> {
+        private static final int LIST_SIZE = 50;
+
+        public UpdateMessageViewsTask() {
+        }
+
+        @Override
+        protected List<Message> doInBackground(Void... voids) {
+            MessageTable mt = (MessageTable) TeamManagement.getInstance()
+                    .getTeamManagementDatabase().getTable(MessageTable.TABLE_NAME);
+            try {
+                    return mt.getMessages(false);
+            } catch (PushService.PushSystemNotFoundException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(List<Message> messages) {
+            super.onPostExecute(messages);
+            updateOverlayText(messages);
+        }
     }
 }

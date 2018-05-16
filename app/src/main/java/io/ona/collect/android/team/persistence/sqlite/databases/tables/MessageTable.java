@@ -143,15 +143,30 @@ public class MessageTable extends Table {
 
     public List<Message> getMessages(long firstId, int count)
             throws SQLiteException, PushService.PushSystemNotFoundException, JSONException {
+        String selection = null;
+        String[] selectionArgs = null;
+        if (firstId > 0) {
+            selection = COLUMN_ID + " <= ?";
+            selectionArgs = new String[]{String.valueOf(firstId)};
+        }
+
+        return getMessage(count, selection, selectionArgs);
+    }
+
+    public List<Message> getMessages(boolean read)
+            throws SQLiteException, PushService.PushSystemNotFoundException, JSONException {
+        String selection = COLUMN_READ + " = ?";
+        String[] selectionArgs = new String[]{String.valueOf(READ)};
+        if (!read) selectionArgs = new String[]{String.valueOf(NOT_READ)};
+
+        return getMessage(-1, selection, selectionArgs);
+    }
+
+    public List<Message> getMessage(int count, String selection, String[] selectionArgs)
+            throws SQLiteException, PushService.PushSystemNotFoundException, JSONException {
         List<Message> messages = new ArrayList<>();
         Cursor cursor = null;
         try {
-            String selection = null;
-            String[] selectionArgs = null;
-            if (firstId > 0) {
-                selection = COLUMN_ID + " <= ?";
-                selectionArgs = new String[]{String.valueOf(firstId)};
-            }
             SubscriptionTable st = (SubscriptionTable) TeamManagement.getInstance()
                     .getTeamManagementDatabase().getTable(SubscriptionTable.TABLE_NAME);
             HashMap<Long, Subscription> subscriptions = st.getAllSubscriptions();

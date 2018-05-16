@@ -7,6 +7,7 @@ import android.net.Uri;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.ona.collect.android.team.BuildConfig;
 import io.ona.collect.android.team.application.TeamManagement;
 import io.ona.collect.android.team.persistence.carriers.OdkForm;
 
@@ -15,7 +16,7 @@ import io.ona.collect.android.team.persistence.carriers.OdkForm;
  */
 
 public class OdkFormsContentResolver {
-    private static final String AUTHORITY = "org.odk.collect.android.provider.odk.forms";
+    private static final String AUTHORITY = BuildConfig.ODK_COLLECT_PACKAGE_NAME + ".provider.odk.forms";
     private static final Uri CONTENT_URI = Uri.parse("content://" + AUTHORITY + "/forms");
     private static final String COLUMN_DISPLAY_NAME = "displayName";
     private static final String COLUMN_DESCRIPTION = "description";  // can be null

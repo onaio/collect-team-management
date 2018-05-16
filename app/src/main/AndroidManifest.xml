@@ -55,6 +55,8 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+        <receiver android:name=".receivers.LaunchOdkReceiver" />
+        <receiver android:name=".receivers.MarkMessageReadReceiver" />
 
         <service
             android:name=".services.MessageOverlayService"

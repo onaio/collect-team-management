@@ -107,23 +107,31 @@ public class MessageTable extends Table {
     }
 
     public void markAsRead(List<Message> messages) throws SQLiteException {
+        if (messages != null) {
+            String[] uuids = new String[messages.size()];
+            for (int i = 0; i < messages.size(); i++) {
+                uuids[i] = String.valueOf(messages.get(i).uuid);
+            }
+            markAsRead(uuids);
+        }
+    }
+
+    public void markAsRead(String[] messageUuids) throws SQLiteException {
         SQLiteDatabase db = dbWrapper.getWritableDatabase();
         try {
             db.beginTransaction();
-            if (messages != null && messages.size() > 0) {
+            if (messageUuids.length > 0) {
                 String where = COLUMN_UUID + " in(";
-                String[] whereVars = new String[messages.size()];
-                for (int i = 0; i < messages.size(); i++) {
+                for (int i = 0; i < messageUuids.length; i++) {
                     if (i > 0) {
                         where += ", ";
                     }
                     where += "?";
-                    whereVars[i] = String.valueOf(messages.get(i).uuid);
                 }
                 where += ")";
                 ContentValues cv = new ContentValues();
                 cv.put(COLUMN_READ, READ);
-                db.update(TABLE_NAME, cv, where, whereVars);
+                db.update(TABLE_NAME, cv, where, messageUuids);
             }
             db.setTransactionSuccessful();
         } finally {

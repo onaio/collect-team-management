@@ -7,6 +7,7 @@ import java.io.File;
 import java.util.ArrayList;
 
 import io.ona.collect.android.team.R;
+import io.ona.collect.android.team.persistence.carriers.Message;
 import io.ona.collect.android.team.persistence.resolvers.OdkFormsContentResolver;
 import io.ona.collect.android.team.persistence.sqlite.databases.TeamManagementDbWrapper;
 import io.ona.collect.android.team.persistence.sqlite.databases.TeamManagementVirtualDatabase;
@@ -14,6 +15,7 @@ import io.ona.collect.android.team.pushes.messages.handlers.PushServiceManager;
 import io.ona.collect.android.team.pushes.services.MqttPushService;
 import io.ona.collect.android.team.pushes.services.PushService;
 import io.ona.collect.android.team.services.StartupService;
+import io.ona.collect.android.team.ui.notifications.MessageNotifications;
 import io.ona.collect.android.team.utils.Permissions;
 
 /**
@@ -21,11 +23,11 @@ import io.ona.collect.android.team.utils.Permissions;
  */
 
 public class TeamManagement extends Application {
-    public static final String ODK_PACKAGE_NAME = "org.odk.collect.android";
     public static final String ODK_ROOT = Environment.getExternalStorageDirectory()
             + File.separator + "odk";
     private TeamManagementDbWrapper teamManagementDatabase;
     private TeamManagementVirtualDatabase teamManagementVirtualDatabase;
+    private MessageNotifications messageNotifications;
     private OdkFormsContentResolver odkFormsContentResolver;
     private static TeamManagement instance;
     private PushServiceManager pushServiceManager;
@@ -64,12 +66,17 @@ public class TeamManagement extends Application {
 
     private void preparePushSystems() {
         pushServiceManager = new PushServiceManager();
+        messageNotifications = new MessageNotifications();
+        pushServiceManager.addMessageListener(messageNotifications);
         activePushServices = new ArrayList<>();
         activePushServices.add(new MqttPushService());
     }
 
     @Override
     public void onTerminate() {
+        if (pushServiceManager != null) {
+            pushServiceManager.removeMessageListener(messageNotifications);
+        }
         if (teamManagementDatabase != null) {
             teamManagementDatabase.close();
         }

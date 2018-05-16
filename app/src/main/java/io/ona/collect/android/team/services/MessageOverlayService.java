@@ -127,7 +127,7 @@ public class MessageOverlayService extends Service implements View.OnTouchListen
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(MessageOverlayService.this, MessagesActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
                 destroyOverlayView();
             }

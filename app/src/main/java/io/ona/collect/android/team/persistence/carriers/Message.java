@@ -9,6 +9,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
@@ -95,5 +96,9 @@ public class Message implements Serializable, Comparable<Message> {
             return uuid.equals(((Message) obj).uuid);
         }
         return false;
+    }
+
+    public static int getNotificationId(String messageUuid) {
+        return Integer.parseInt(messageUuid);
     }
 }

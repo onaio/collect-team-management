@@ -15,4 +15,8 @@
     <string name="you_have_new_messages">You have %1$d new %2$s</string>
     <string name="message">message</string>
     <string name="messages">messages</string>
+    <string name="free_form_messages_channel_name">Chat Messages</string>
+    <string name="free_form_messages_channel_description">Chat messages from other members of your ODK team.</string>
+    <string name="mark_read">Mark Read</string>
+    <string name="launch_odk">Launch ODK</string>
 </resources>
